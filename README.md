@@ -28,6 +28,12 @@ I hope this apps help you to keep you focused, disciplined, and on track.
 
 ---
 
+<img width="1434" height="667" alt="Screenshot 2026-03-24 at 7 41 15 PM" src="https://github.com/user-attachments/assets/080f4156-6b30-4e17-b968-785abb575332" />
+
+<img width="1423" height="741" alt="Screenshot 2026-03-24 at 7 42 54 PM" src="https://github.com/user-attachments/assets/029e714d-8895-472d-b306-407c58f09de6" />
+
+---
+
 ## Quick start (Web)
 
 ```bash
@@ -97,6 +103,7 @@ You can easily wrap this web application into a native desktop application using
 
 4. **Build the Final Executable:**
    This command will compile the React app and package it into a native installer.
+
    ```bash
    npx tauri build
    ```
