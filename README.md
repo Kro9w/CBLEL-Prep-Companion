@@ -1,4 +1,4 @@
-# The Long Game: CBLE Tracker
+# CBLEL PREP-Companion
 
 A daily routine, checklist, and Pomodoro app for Computer Based Licensure Examination (CBLE) board exam preparation. Built with React, Vite, and TypeScript.
 
@@ -6,8 +6,14 @@ The Long Game is designed with a "Less is More" philosophy to keep you focused, 
 
 ---
 
-## Features
+<img width="1179" height="621" alt="Screenshot 2026-03-24 at 6 42 34 PM" src="https://github.com/user-attachments/assets/6075c213-48da-4905-a2d7-714335d52db0" />
 
+<img width="1434" height="667" alt="Screenshot 2026-03-24 at 7 41 15 PM" src="https://github.com/user-attachments/assets/080f4156-6b30-4e17-b968-785abb575332" />
+
+<img width="1423" height="741" alt="Screenshot 2026-03-24 at 7 42 54 PM" src="https://github.com/user-attachments/assets/029e714d-8895-472d-b306-407c58f09de6" />
+
+
+## Features
 - **Customizable Onboarding:** Set your name, reorder the 6 CBLE subjects, and define your custom study cycle (e.g., 6 days per subject) and active study days.
 - **Dynamic Daily Checklist:** Automatically generates a daily routine based on your assigned subject for the week. The checklist is a _prescription_—you can freely remove items or add your own custom tasks to fit your actual day.
 - **Pomodoro Timer:** A built-in, floating 25/5 Pomodoro timer to help you maintain focus during study blocks.
