@@ -6,7 +6,7 @@ The Long Game is designed with a "Less is More" philosophy to keep you focused, 
 
 ---
 
-<img width="1179" height="621" alt="Screenshot 2026-03-24 at 6 42 34 PM" src="https://github.com/user-attachments/assets/6075c213-48da-4905-a2d7-714335d52db0" />
+<img width="1419" height="655" alt="Screenshot 2026-03-24 at 8 00 43 PM" src="https://github.com/user-attachments/assets/8f32a4ff-475a-4753-a31e-70c69847c5d9" />
 
 <img width="1432" height="667" alt="Screenshot 2026-03-24 at 7 39 33 PM" src="https://github.com/user-attachments/assets/e86f6af4-f422-4e2c-86de-34ecbb84101d" />
 
