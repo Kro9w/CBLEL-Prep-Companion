@@ -1,8 +1,8 @@
 # CBLEL PREP-Companion
 
-A daily routine, checklist, and Pomodoro app for Computer Based Licensure Examination (CBLE) board exam preparation. Built with React, Vite, and TypeScript.
+A daily routine, checklist, and Pomodoro app for the upcoming Computer Based Licensure Examination for Librarians (CBLEL). Built with React, Vite, and TypeScript.
 
-The Long Game is designed with a "Less is More" philosophy to keep you focused, disciplined, and on track.
+I hope this apps help you to keep you focused, disciplined, and on track.
 
 ---
 
