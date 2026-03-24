@@ -4,33 +4,34 @@ A daily routine, checklist, and Pomodoro app for the upcoming Computer Based Lic
 
 I hope this apps help you to keep you focused, disciplined, and on track.
 
----
-
-<img width="1419" height="655" alt="Screenshot 2026-03-24 at 8 00 43 PM" src="https://github.com/user-attachments/assets/8f32a4ff-475a-4753-a31e-70c69847c5d9" />
-
-<img width="1432" height="667" alt="Screenshot 2026-03-24 at 7 39 33 PM" src="https://github.com/user-attachments/assets/e86f6af4-f422-4e2c-86de-34ecbb84101d" />
 
 ---
 
 ## Features
 - **Customizable Onboarding:** Set your name, reorder the 6 CBLE subjects, and define your custom study cycle (e.g., 6 days per subject) and active study days.
+![1](https://github.com/user-attachments/assets/f040ae8d-82bb-4ee2-ae8d-a7ce3f45b6b6)
+
 - **Dynamic Daily Checklist:** Automatically generates a daily routine based on your assigned subject for the week. The checklist is a _prescription_—you can freely remove items or add your own custom tasks to fit your actual day.
+![2](https://github.com/user-attachments/assets/a4f04a68-59ec-4897-8df2-12b79114b46d)
+
+
 - **Pomodoro Timer:** A built-in, floating 25/5 Pomodoro timer to help you maintain focus during study blocks.
+![3](https://github.com/user-attachments/assets/65873a74-9968-4404-bc0a-6131ad1fdce6)
+
+
 - **Mock Exams:** Take full timed exams or immediate-feedback sessions. Upload your own `.txt` question banks.
+![4](https://github.com/user-attachments/assets/3d5a0297-d9b5-4be0-98a5-5d29fb6c36e2)
+
+
 - **Dashboard & Progress:** Track your study streak, days left until the exam, completion rates, and view a heat map of your recent mock exam scores.
+<img width="1424" height="743" alt="5" src="https://github.com/user-attachments/assets/daa0007d-8e85-4cb8-838c-35d91e3d4e91" />
+
+
 - **Dark Mode:** Fully responsive dark mode for late-night review sessions.
+![6](https://github.com/user-attachments/assets/0fecd999-b068-4edd-b772-7117cae818a8)
+
+
 - **Persistent Storage:** All your progress, custom tasks, deleted prescribed tasks, and mock exam scores are saved securely to your browser's `localStorage`.
-
----
-<img width="1434" height="667" alt="Screenshot 2026-03-24 at 7 41 15 PM" src="https://github.com/user-attachments/assets/080f4156-6b30-4e17-b968-785abb575332" />
-
-<img width="1423" height="741" alt="Screenshot 2026-03-24 at 7 42 54 PM" src="https://github.com/user-attachments/assets/029e714d-8895-472d-b306-407c58f09de6" />
-
----
-
-<img width="1434" height="667" alt="Screenshot 2026-03-24 at 7 41 15 PM" src="https://github.com/user-attachments/assets/080f4156-6b30-4e17-b968-785abb575332" />
-
-<img width="1423" height="741" alt="Screenshot 2026-03-24 at 7 42 54 PM" src="https://github.com/user-attachments/assets/029e714d-8895-472d-b306-407c58f09de6" />
 
 ---
 
