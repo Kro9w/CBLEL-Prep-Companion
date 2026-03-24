@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
+import { loadSubjects } from "./App";
 
 // ── types ─────────────────────────────────────────────────────────────────────
 type Option = { letter: string; text: string; correct: boolean };
@@ -26,7 +27,7 @@ type SavedExam = {
   wrong: WrongItem[];
 };
 
-// ── embedded subject short codes
+// ── subject short codes ───────────────────────────────────────────────────────
 const SUBJECT_SHORTS: Record<string, string> = {
   LOM: "LOM",
   RBU: "RBU",
@@ -36,7 +37,7 @@ const SUBJECT_SHORTS: Record<string, string> = {
   IT: "IT",
 };
 
-// ── item parser
+// ── parser ────────────────────────────────────────────────────────────────────
 function parseExamCode(raw: string): string {
   const firstLine =
     raw
@@ -58,6 +59,7 @@ function parseQuestions(raw: string): Question[] {
 
   const questionRe = /^(\d+)[.)]\s+(.+)$/;
   const optionRe = /^(\*?)([A-Da-d])[.)]\s+(.+)$/;
+  // skip the exam code line
   const examCodeRe = /^[A-Z]{2,6}_\d+$/i;
 
   for (const line of lines) {
@@ -83,7 +85,7 @@ function parseQuestions(raw: string): Question[] {
   return questions;
 }
 
-// ── storage helpers
+// ── storage helpers ───────────────────────────────────────────────────────────
 const EXAMS_KEY = "saved-exams";
 
 function scoreKey(date: Date) {
@@ -110,7 +112,7 @@ function appendSavedExam(exam: SavedExam) {
   } catch {}
 }
 
-// ── format helpers
+// ── format helpers ────────────────────────────────────────────────────────────
 function formatTime(secs: number): string {
   const m = Math.floor(secs / 60);
   const s = secs % 60;
@@ -156,9 +158,9 @@ function scoreLabel(pct: number): string {
         : "Review needed";
 }
 
-const EXAM_DURATION = 3600;
+const EXAM_DURATION = 3600; // 1 hour in seconds
 
-// ── progress bar
+// ── progress bar ──────────────────────────────────────────────────────────────
 function ProgressBar({ current, total }: { current: number; total: number }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -188,7 +190,7 @@ function ProgressBar({ current, total }: { current: number; total: number }) {
   );
 }
 
-// ── timer display
+// ── timer display ─────────────────────────────────────────────────────────────
 function TimerDisplay({ elapsed, limit }: { elapsed: number; limit: number }) {
   const remaining = limit - elapsed;
   const pct = elapsed / limit;
@@ -239,7 +241,7 @@ function TimerDisplay({ elapsed, limit }: { elapsed: number; limit: number }) {
   );
 }
 
-// ── wrong answer review block (shared by review + history)
+// ── wrong answer review block (shared by review + history) ───────────────────
 function WrongReview({ wrong }: { wrong: WrongItem[] }) {
   if (wrong.length === 0)
     return (
@@ -355,7 +357,7 @@ function WrongReview({ wrong }: { wrong: WrongItem[] }) {
   );
 }
 
-// ── previous exams view
+// ── previous exams view ───────────────────────────────────────────────────────
 function PreviousExams() {
   const [exams, setExams] = useState<SavedExam[]>(loadSavedExams);
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -619,7 +621,7 @@ function PreviousExams() {
   );
 }
 
-// ── main component
+// ── main component ────────────────────────────────────────────────────────────
 export default function MockExam() {
   const [view, setView] = useState<"exam" | "history">("exam");
   const [phase, setPhase] = useState<ExamPhase>("load");
@@ -661,7 +663,7 @@ export default function MockExam() {
       setElapsed((e) => {
         if (e + 1 >= EXAM_DURATION) {
           clearInterval(timerRef.current!);
-          // auto-finish via ref to avoid stale closure via flag
+          // auto-finish via ref to avoid stale closure; we use a flag
           return EXAM_DURATION;
         }
         return e + 1;
@@ -747,6 +749,7 @@ export default function MockExam() {
   function finishExam(timeTaken: number) {
     stopTimer();
     // compute results using current answers state
+    // since this can be called from useEffect with stale answers, we capture via closure
     setAnswers((currentAnswers) => {
       const correct = questions.filter((q, i) => {
         const chosen = currentAnswers[i];
@@ -840,6 +843,17 @@ export default function MockExam() {
   const isRevealed =
     mode === "immediate" ? !!revealed[current] : phase === "review";
   const timedOut = elapsed >= EXAM_DURATION;
+
+  // LLE TOS weighting logic
+  const allSubjects = loadSubjects();
+  // Find subject match by checking if the examCode starts with the subject's short code (e.g., LOM_1 -> LOM)
+  const matchedSubject = allSubjects.find((s) =>
+    examCode.toUpperCase().startsWith(s.short),
+  );
+  const weightedContribution =
+    matchedSubject && matchedSubject.weight
+      ? (scorePercent / 100) * matchedSubject.weight
+      : null;
 
   // ── tab bar ──
   const tabBar = (
@@ -1524,6 +1538,19 @@ D. Country`}</pre>
                 {correctCount} correct · {questions.length - correctCount} wrong
                 · {questions.length} total
               </div>
+              {matchedSubject && matchedSubject.weight && (
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: scoreColor(scorePercent),
+                    marginTop: 2,
+                    fontWeight: 500,
+                  }}
+                >
+                  {weightedContribution?.toFixed(1)}% / {matchedSubject.weight}%
+                  LLE Weighted Contribution
+                </div>
+              )}
             </div>
             <div style={{ textAlign: "right" }}>
               <div

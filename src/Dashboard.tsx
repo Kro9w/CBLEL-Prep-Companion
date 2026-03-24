@@ -8,7 +8,7 @@ import {
 } from "./App";
 import type { MilestoneData } from "./App";
 
-// ── quotes compiled by me hehe
+// ── quotes ────────────────────────────────────────────────────────────────────
 const QUOTES = [
   {
     text: "The struggle itself toward the heights is enough to fill a man's heart.",
@@ -114,7 +114,7 @@ function getDailyQuote() {
   return QUOTES[idx];
 }
 
-// ── storage helpers
+// ── storage helpers ───────────────────────────────────────────────────────────
 function checksKey(d: Date) {
   return `checks-${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
 }
@@ -153,7 +153,7 @@ const MONTH_SHORT = [
   "Dec",
 ];
 
-// ── day-completion logic (AT LEAST 50% of tasks done)
+// ── day-completion logic (≥50% = done) ───────────────────────────────────────
 function isDayCompleted(
   d: Date,
   startDateStr: string,
@@ -284,7 +284,7 @@ function getWeekDates(offset: number): Date[] {
   });
 }
 
-// ── sub-components
+// ── sub-components ────────────────────────────────────────────────────────────
 function StatCard({
   label,
   value,
@@ -653,7 +653,7 @@ function WeeklyOverview({
   );
 }
 
-// ── dashboard
+// ── main dashboard ────────────────────────────────────────────────────────────
 export default function Dashboard({
   userName,
   startDateStr,
@@ -1238,7 +1238,7 @@ export default function Dashboard({
                     {s.name}
                   </div>
                   <div style={{ fontSize: 10, color: "var(--ink-faint)" }}>
-                    {s.short}
+                    {s.short} · {s.weight}% LLE Weight
                   </div>
                 </div>
                 {isCurrent && (

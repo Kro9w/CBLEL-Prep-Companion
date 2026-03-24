@@ -5,7 +5,7 @@ import Onboarding from "./Onboarding";
 import TourOverlay from "./TourOverlay";
 import Pomodoro from "./Pomodoro";
 
-// ── storage & state helpers
+// ── storage & state helpers ───────────────────────────────────────────────────
 export function loadJSON<T>(key: string, fallback: T): T {
   try {
     const v = localStorage.getItem(key);
@@ -21,7 +21,7 @@ export function saveJSON(key: string, val: unknown) {
   } catch {}
 }
 
-// ── default milestones
+// ── default milestones ────────────────────────────────────────────────────────
 const DEFAULT_MILESTONES = [
   {
     id: "registration",
@@ -48,18 +48,35 @@ function saveMilestones(ms: MilestoneData[]) {
   saveJSON("milestones", ms);
 }
 
-// ── hardcoded subjects
+// ── subjects ──────────────────────────────────────────────────────────────────
 export const DEFAULT_SUBJECTS = [
-  { name: "Library Organization and Management", short: "LOM" },
-  { name: "Reference, Bibliography, and User Services", short: "RBU" },
-  { name: "Cataloging and Classification", short: "CC" },
-  { name: "Indexing and Abstracting", short: "IA" },
-  { name: "Collection Management (Selection and Acquisition)", short: "CM" },
-  { name: "Information Technology", short: "IT" },
+  { name: "Library Organization and Management", short: "LOM", weight: 20 },
+  {
+    name: "Reference, Bibliography, and User Services",
+    short: "RBU",
+    weight: 20,
+  },
+  { name: "Cataloging and Classification", short: "CC", weight: 20 },
+  { name: "Indexing and Abstracting", short: "IA", weight: 15 },
+  {
+    name: "Collection Management (Selection and Acquisition)",
+    short: "CM",
+    weight: 15,
+  },
+  { name: "Information Technology", short: "IT", weight: 10 },
 ];
 
 export function loadSubjects() {
-  return loadJSON("subjects", DEFAULT_SUBJECTS);
+  // Gracefully merge missing weights for existing users
+  const loaded: typeof DEFAULT_SUBJECTS = loadJSON(
+    "subjects",
+    DEFAULT_SUBJECTS,
+  );
+  return loaded.map((s) => {
+    if (s.weight) return s;
+    const defaultSub = DEFAULT_SUBJECTS.find((ds) => ds.short === s.short);
+    return { ...s, weight: defaultSub ? defaultSub.weight : 0 };
+  });
 }
 
 export function isRestDay(
@@ -75,7 +92,13 @@ export function getSubjectForDate(
   subjects: typeof DEFAULT_SUBJECTS,
   cycleLength: number = 6,
   studyDays: number[] = [1, 2, 3, 4, 5, 6],
-): { subject: string; short: string; weekNum: number; idx: number } {
+): {
+  subject: string;
+  short: string;
+  weekNum: number;
+  idx: number;
+  weight?: number;
+} {
   if (isRestDay(date, studyDays))
     return { subject: "Rest day", short: "Rest", weekNum: 0, idx: -1 };
 
@@ -84,7 +107,7 @@ export function getSubjectForDate(
   const target = new Date(date);
   target.setHours(0, 0, 0, 0);
 
-  // Count how many study days have passed since the start date
+  // Count how many valid study days have passed since the start date
   let validDaysPassed = 0;
   const d = new Date(ref);
   while (d < target) {
@@ -97,7 +120,13 @@ export function getSubjectForDate(
   const cycleNum = Math.floor(Math.max(validDaysPassed, 0) / cycleLength);
   const idx = cycleNum % subjects.length;
   const s = subjects[idx];
-  return { subject: s.name, short: s.short, weekNum: cycleNum + 1, idx };
+  return {
+    subject: s.name,
+    short: s.short,
+    weekNum: cycleNum + 1,
+    idx,
+    weight: s.weight,
+  };
 }
 
 export function getDaysUntil(target: Date): number {
@@ -108,7 +137,7 @@ export function getDaysUntil(target: Date): number {
   return Math.ceil((t.getTime() - now.getTime()) / 86400000);
 }
 
-// ── checklist
+// ── checklist builder ─────────────────────────────────────────────────────────
 export type ChecklistItem = {
   id: string;
   label: string;
@@ -287,18 +316,17 @@ function deletedKey(d: Date) {
   return `deleted-${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
 }
 
-// ── app proper
+// ── app ───────────────────────────────────────────────────────────────────────
 export default function App() {
-  // Config
+  // Config state
   const [userName, setUserName] = useState<string | null>(() =>
     loadJSON("userName", null),
   );
   const [startDateStr, setStartDateStr] = useState<string | null>(() =>
     loadJSON("startDateStr", null),
   );
-  const [subjects, setSubjects] = useState<typeof DEFAULT_SUBJECTS>(() =>
-    loadJSON("subjects", DEFAULT_SUBJECTS),
-  );
+  const [subjects, setSubjects] =
+    useState<typeof DEFAULT_SUBJECTS>(loadSubjects);
   const [cycleLength, setCycleLength] = useState<number>(() =>
     loadJSON("cycleLength", 6),
   );
@@ -1187,7 +1215,7 @@ export default function App() {
                   marginBottom: 4,
                 }}
               >
-                Days to CBLEL
+                Days to CBLEL exam
               </div>
               <div
                 style={{
@@ -1210,7 +1238,7 @@ export default function App() {
                   day: "numeric",
                   year: "numeric",
                 })}{" "}
-                · Aim for topnotcher.
+                · Get that License.
               </div>
             </div>
             <button
@@ -1300,7 +1328,7 @@ export default function App() {
                       {s.name}
                     </div>
                     <div style={{ fontSize: 11, color: "var(--ink-faint)" }}>
-                      {s.short}
+                      {s.short} · {s.weight}% LLE Weight
                     </div>
                   </div>
                   {isCurrent && (
