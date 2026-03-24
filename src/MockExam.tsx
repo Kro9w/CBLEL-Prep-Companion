@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { loadSubjects } from "./App";
 
-// ── types ─────────────────────────────────────────────────────────────────────
+// ── types
 type Option = { letter: string; text: string; correct: boolean };
 type Question = { number: number; stem: string; options: Option[] };
 type SessionMode = "immediate" | "end";
@@ -27,7 +27,7 @@ type SavedExam = {
   wrong: WrongItem[];
 };
 
-// ── subject short codes ───────────────────────────────────────────────────────
+// ── subject short codes
 const SUBJECT_SHORTS: Record<string, string> = {
   LOM: "LOM",
   RBU: "RBU",
@@ -37,7 +37,7 @@ const SUBJECT_SHORTS: Record<string, string> = {
   IT: "IT",
 };
 
-// ── parser ────────────────────────────────────────────────────────────────────
+// ── item parser
 function parseExamCode(raw: string): string {
   const firstLine =
     raw

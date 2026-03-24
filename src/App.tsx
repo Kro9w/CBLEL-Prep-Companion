@@ -5,7 +5,7 @@ import Onboarding from "./Onboarding";
 import TourOverlay from "./TourOverlay";
 import Pomodoro from "./Pomodoro";
 
-// ── storage & state helpers ───────────────────────────────────────────────────
+// ── storage state helpers
 export function loadJSON<T>(key: string, fallback: T): T {
   try {
     const v = localStorage.getItem(key);
@@ -21,7 +21,7 @@ export function saveJSON(key: string, val: unknown) {
   } catch {}
 }
 
-// ── default milestones ────────────────────────────────────────────────────────
+// ── default milestones
 const DEFAULT_MILESTONES = [
   {
     id: "registration",
@@ -48,7 +48,7 @@ function saveMilestones(ms: MilestoneData[]) {
   saveJSON("milestones", ms);
 }
 
-// ── subjects ──────────────────────────────────────────────────────────────────
+// ── subjects
 export const DEFAULT_SUBJECTS = [
   { name: "Library Organization and Management", short: "LOM", weight: 20 },
   {
@@ -316,7 +316,7 @@ function deletedKey(d: Date) {
   return `deleted-${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
 }
 
-// ── app ───────────────────────────────────────────────────────────────────────
+// ── app
 export default function App() {
   // Config state
   const [userName, setUserName] = useState<string | null>(() =>
