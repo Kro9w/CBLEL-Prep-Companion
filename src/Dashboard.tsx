@@ -8,7 +8,7 @@ import {
 } from "./App";
 import type { MilestoneData } from "./App";
 
-// ── quotes ────────────────────────────────────────────────────────────────────
+// ── quotes compiled by me hehe
 const QUOTES = [
   {
     text: "The struggle itself toward the heights is enough to fill a man's heart.",
@@ -114,7 +114,7 @@ function getDailyQuote() {
   return QUOTES[idx];
 }
 
-// ── storage helpers ───────────────────────────────────────────────────────────
+// ── storage helpers
 function checksKey(d: Date) {
   return `checks-${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
 }
@@ -153,7 +153,7 @@ const MONTH_SHORT = [
   "Dec",
 ];
 
-// ── day-completion logic (≥50% = done) ───────────────────────────────────────
+// ── day-completion logic (AT LEAST 50% of tasks done)
 function isDayCompleted(
   d: Date,
   startDateStr: string,
@@ -284,7 +284,7 @@ function getWeekDates(offset: number): Date[] {
   });
 }
 
-// ── sub-components ────────────────────────────────────────────────────────────
+// ── sub-components
 function StatCard({
   label,
   value,
@@ -653,7 +653,7 @@ function WeeklyOverview({
   );
 }
 
-// ── main dashboard ────────────────────────────────────────────────────────────
+// ── dashboard
 export default function Dashboard({
   userName,
   startDateStr,

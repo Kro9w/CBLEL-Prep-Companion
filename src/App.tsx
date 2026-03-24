@@ -5,7 +5,7 @@ import Onboarding from "./Onboarding";
 import TourOverlay from "./TourOverlay";
 import Pomodoro from "./Pomodoro";
 
-// ── storage & state helpers ───────────────────────────────────────────────────
+// ── storage & state helpers
 export function loadJSON<T>(key: string, fallback: T): T {
   try {
     const v = localStorage.getItem(key);
@@ -21,7 +21,7 @@ export function saveJSON(key: string, val: unknown) {
   } catch {}
 }
 
-// ── default milestones ────────────────────────────────────────────────────────
+// ── default milestones
 const DEFAULT_MILESTONES = [
   {
     id: "registration",
@@ -48,7 +48,7 @@ function saveMilestones(ms: MilestoneData[]) {
   saveJSON("milestones", ms);
 }
 
-// ── subjects ──────────────────────────────────────────────────────────────────
+// ── hardcoded subjects
 export const DEFAULT_SUBJECTS = [
   { name: "Library Organization and Management", short: "LOM" },
   { name: "Reference, Bibliography, and User Services", short: "RBU" },
@@ -84,7 +84,7 @@ export function getSubjectForDate(
   const target = new Date(date);
   target.setHours(0, 0, 0, 0);
 
-  // Count how many valid study days have passed since the start date
+  // Count how many study days have passed since the start date
   let validDaysPassed = 0;
   const d = new Date(ref);
   while (d < target) {
@@ -108,7 +108,7 @@ export function getDaysUntil(target: Date): number {
   return Math.ceil((t.getTime() - now.getTime()) / 86400000);
 }
 
-// ── checklist builder ─────────────────────────────────────────────────────────
+// ── checklist
 export type ChecklistItem = {
   id: string;
   label: string;
@@ -287,9 +287,9 @@ function deletedKey(d: Date) {
   return `deleted-${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
 }
 
-// ── app ───────────────────────────────────────────────────────────────────────
+// ── app proper
 export default function App() {
-  // Config state
+  // Config
   const [userName, setUserName] = useState<string | null>(() =>
     loadJSON("userName", null),
   );
