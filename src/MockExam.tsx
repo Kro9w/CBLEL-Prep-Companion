@@ -11,6 +11,7 @@ type WrongItem = {
   number: number;
   stem: string;
   chosen: string | undefined;
+  chosenText?: string;
   correctLetter: string;
   correctText: string;
 };
@@ -317,7 +318,9 @@ function WrongReview({ wrong }: { wrong: WrongItem[] }) {
                 <span
                   style={{ fontSize: 12, color: "var(--red)", lineHeight: 1.5 }}
                 >
-                  Your answer
+                  {w.chosenText
+                    ? `${w.chosenText} — your answer`
+                    : "Your answer"}
                 </span>
               </div>
             )}
@@ -373,6 +376,8 @@ function PreviousExams() {
     setExpanded(null);
   }
 
+  const allSubjects = loadSubjects();
+
   if (exams.length === 0)
     return (
       <div style={{ padding: "32px 24px", textAlign: "center" }}>
@@ -407,6 +412,14 @@ function PreviousExams() {
       {exams.map((exam) => {
         const isOpen = expanded === exam.id;
         const isConfirm = confirmDelete === exam.id;
+
+        const matchedSubject = allSubjects.find((s) =>
+          exam.examCode.toUpperCase().startsWith(s.short),
+        );
+        const displayName = matchedSubject
+          ? `${matchedSubject.name} · ${exam.examCode}`
+          : exam.examCode;
+
         return (
           <div
             key={exam.id}
@@ -444,7 +457,7 @@ function PreviousExams() {
                       color: "var(--ink)",
                     }}
                   >
-                    {exam.examCode}
+                    {displayName}
                   </span>
                   <span
                     style={{
@@ -761,6 +774,7 @@ export default function MockExam() {
       const wrong: WrongItem[] = questions
         .map((q, i) => {
           const chosen = currentAnswers[i];
+          const chosenOpt = q.options.find((o) => o.letter === chosen);
           const correctOpt = q.options.find((o) => o.correct);
           const isWrong =
             !chosen || !q.options.find((o) => o.letter === chosen)?.correct;
@@ -769,6 +783,7 @@ export default function MockExam() {
             number: q.number,
             stem: q.stem,
             chosen,
+            chosenText: chosenOpt?.text,
             correctLetter: correctOpt?.letter || "",
             correctText: correctOpt?.text || "",
           };
@@ -825,6 +840,7 @@ export default function MockExam() {
   const wrongItems: WrongItem[] = questions
     .map((q, i) => {
       const chosen = answers[i];
+      const chosenOpt = q.options.find((o) => o.letter === chosen);
       const correctOpt = q.options.find((o) => o.correct);
       if (chosen && q.options.find((o) => o.letter === chosen)?.correct)
         return null;
@@ -832,6 +848,7 @@ export default function MockExam() {
         number: q.number,
         stem: q.stem,
         chosen,
+        chosenText: chosenOpt?.text,
         correctLetter: correctOpt?.letter || "",
         correctText: correctOpt?.text || "",
       };

@@ -147,33 +147,119 @@ export type ChecklistItem = {
   custom?: boolean;
 };
 
+export const DEFAULT_REST_TEMPLATE: ChecklistItem[] = [
+  { id: "rest-sleep", label: "Sleep in — no alarm", tag: "rest" },
+  {
+    id: "rest-leisure",
+    label: "Leisure, errands, or social time",
+    tag: "leisure",
+  },
+  {
+    id: "rest-journal",
+    label: "Journal or read for pleasure",
+    tag: "leisure",
+  },
+  {
+    id: "rest-prep",
+    label: "Light prep for tomorrow (5–10 min)",
+    note: "Set out materials, check tomorrow's subject",
+    tag: "rest",
+  },
+];
+
+export const DEFAULT_STUDY_TEMPLATE: ChecklistItem[] = [
+  {
+    id: "wake",
+    label: "Wake up & morning prep",
+    time: "5:30 AM",
+    tag: "rest",
+  },
+  {
+    id: "review1",
+    label: "Deep review", // will be dynamically updated
+    time: "6:00 – 8:30 AM",
+    note: "Theory, notes, active recall, spaced repetition",
+    tag: "study",
+  },
+  {
+    id: "mock",
+    label: "Mock exam — 100 items (timed)",
+    time: "8:30 – 10:00 AM",
+    note: "Full timed exam + thorough error review",
+    tag: "mock",
+  },
+  {
+    id: "break1",
+    label: "Break & snack",
+    time: "10:00 – 10:30 AM",
+    tag: "rest",
+  },
+  {
+    id: "review2",
+    label: "Second review block",
+    time: "10:30 AM – 12:30 PM",
+    note: "Revisit weak areas from mock exam",
+    tag: "study",
+  },
+  {
+    id: "lunch",
+    label: "Lunch & optional nap",
+    time: "12:30 – 1:30 PM",
+    tag: "rest",
+  },
+  {
+    id: "review3",
+    label: "Third review block",
+    time: "1:30 – 4:00 PM",
+    note: "Cross-subject recall, notes consolidation, flashcards",
+    tag: "study",
+  },
+  {
+    id: "break2",
+    label: "Break & walk",
+    time: "4:00 – 4:30 PM",
+    tag: "rest",
+  },
+  {
+    id: "review-eve",
+    label: "Evening review",
+    time: "4:30 – 6:00 PM",
+    tag: "study",
+  },
+  {
+    id: "dinner",
+    label: "Dinner & decompress",
+    time: "6:30 – 7:30 PM",
+    tag: "rest",
+  },
+  {
+    id: "leisure",
+    label: "Reading / journaling",
+    time: "7:30 – 9:00 PM",
+    note: "Non-negotiable leisure. Burnout protection.",
+    tag: "leisure",
+  },
+  {
+    id: "winddown",
+    label: "Light review or wind down — lights out by 10",
+    time: "9:00 – 10:00 PM",
+    note: "Scan notes or do nothing. Both are fine.",
+    tag: "rest",
+  },
+];
+
 export function buildChecklist(
   date: Date,
   startDateStr: string,
   subjects: typeof DEFAULT_SUBJECTS,
   cycleLength: number = 6,
   studyDays: number[] = [1, 2, 3, 4, 5, 6],
+  studyTemplate: ChecklistItem[] = DEFAULT_STUDY_TEMPLATE,
+  restTemplate: ChecklistItem[] = DEFAULT_REST_TEMPLATE,
 ): ChecklistItem[] {
-  if (isRestDay(date, studyDays))
-    return [
-      { id: "rest-sleep", label: "Sleep in — no alarm", tag: "rest" },
-      {
-        id: "rest-leisure",
-        label: "Leisure, errands, or social time",
-        tag: "leisure",
-      },
-      {
-        id: "rest-journal",
-        label: "Journal or read for pleasure",
-        tag: "leisure",
-      },
-      {
-        id: "rest-prep",
-        label: "Light prep for tomorrow (5–10 min)",
-        note: "Set out materials, check tomorrow's subject",
-        tag: "rest",
-      },
-    ];
+  if (isRestDay(date, studyDays)) {
+    return restTemplate;
+  }
   const { subject } = getSubjectForDate(
     date,
     startDateStr,
@@ -181,90 +267,13 @@ export function buildChecklist(
     cycleLength,
     studyDays,
   );
-  const items: ChecklistItem[] = [];
 
-  items.push(
-    {
-      id: "wake",
-      label: "Wake up & morning prep",
-      time: "5:30 AM",
-      tag: "rest",
-    },
-    {
-      id: "review1",
-      label: `Deep review — ${subject}`,
-      time: "6:00 – 8:30 AM",
-      note: "Theory, notes, active recall, spaced repetition",
-      tag: "study",
-    },
-    {
-      id: "mock",
-      label: "Mock exam — 100 items (timed)",
-      time: "8:30 – 10:00 AM",
-      note: "Full timed exam + thorough error review",
-      tag: "mock",
-    },
-    {
-      id: "break1",
-      label: "Break & snack",
-      time: "10:00 – 10:30 AM",
-      tag: "rest",
-    },
-    {
-      id: "review2",
-      label: "Second review block",
-      time: "10:30 AM – 12:30 PM",
-      note: "Revisit weak areas from mock exam",
-      tag: "study",
-    },
-    {
-      id: "lunch",
-      label: "Lunch & optional nap",
-      time: "12:30 – 1:30 PM",
-      tag: "rest",
-    },
-    {
-      id: "review3",
-      label: "Third review block",
-      time: "1:30 – 4:00 PM",
-      note: "Cross-subject recall, notes consolidation, flashcards",
-      tag: "study",
-    },
-    {
-      id: "break2",
-      label: "Break & walk",
-      time: "4:00 – 4:30 PM",
-      tag: "rest",
-    },
-    {
-      id: "review-eve",
-      label: "Evening review",
-      time: "4:30 – 6:00 PM",
-      tag: "study",
-    },
-    {
-      id: "dinner",
-      label: "Dinner & decompress",
-      time: "6:30 – 7:30 PM",
-      tag: "rest",
-    },
-    {
-      id: "leisure",
-      label: "Reading / journaling",
-      time: "7:30 – 9:00 PM",
-      note: "Non-negotiable leisure. Burnout protection.",
-      tag: "leisure",
-    },
-    {
-      id: "winddown",
-      label: "Light review or wind down — lights out by 10",
-      time: "9:00 – 10:00 PM",
-      note: "Scan notes or do nothing. Both are fine.",
-      tag: "rest",
-    },
-  );
-
-  return items;
+  return studyTemplate.map((item) => {
+    if (item.id === "review1") {
+      return { ...item, label: `Deep review — ${subject}` };
+    }
+    return item;
+  });
 }
 
 export const TAG_STYLES: Record<
@@ -352,8 +361,23 @@ export default function App() {
   const [customTasks, setCustomTasks] = useState<ChecklistItem[]>([]);
   const [deletedTasks, setDeletedTasks] = useState<string[]>([]);
   const [newTaskLabel, setNewTaskLabel] = useState("");
+  const [newTaskTime, setNewTaskTime] = useState("");
+  const [newTaskNote, setNewTaskNote] = useState("");
   const [showAddTask, setShowAddTask] = useState(false);
   const [tourSeen, setTourSeen] = useState(() => loadJSON("tourSeen", false));
+
+  const [studyTemplate, setStudyTemplate] = useState<ChecklistItem[]>(() =>
+    loadJSON("studyTemplate", DEFAULT_STUDY_TEMPLATE),
+  );
+  const [restTemplate, setRestTemplate] = useState<ChecklistItem[]>(() =>
+    loadJSON("restTemplate", DEFAULT_REST_TEMPLATE),
+  );
+  const [editingTemplate, setEditingTemplate] = useState<
+    "study" | "rest" | null
+  >(null);
+  const [templateEditMode, setTemplateEditMode] = useState<"view" | "edit">(
+    "view",
+  );
 
   const dateKey = storageKey(viewDate);
 
@@ -404,14 +428,25 @@ export default function App() {
   function addCustomTask() {
     const label = newTaskLabel.trim();
     if (!label) return;
+    const time = newTaskTime.trim();
+    const note = newTaskNote.trim();
     const id = `custom-${Date.now()}`;
-    const task: ChecklistItem = { id, label, tag: "custom", custom: true };
+    const task: ChecklistItem = {
+      id,
+      label,
+      time: time || undefined,
+      note: note || undefined,
+      tag: "custom",
+      custom: true,
+    };
     const next = [...customTasks, task];
     setCustomTasks(next);
     try {
       localStorage.setItem(customKey(viewDate), JSON.stringify(next));
     } catch {}
     setNewTaskLabel("");
+    setNewTaskTime("");
+    setNewTaskNote("");
     setShowAddTask(false);
   }
 
@@ -498,6 +533,8 @@ export default function App() {
     subjects,
     cycleLength,
     studyDays,
+    studyTemplate,
+    restTemplate,
   );
   const allItems = [
     ...builtItems.filter((i) => !deletedTasks.includes(i.id)),
@@ -734,354 +771,739 @@ export default function App() {
         {/* checklist */}
         {activeTab === "checklist" && (
           <>
-            {allItems.length > 0 && (
-              <div style={{ marginBottom: 20 }}>
+            {templateEditMode === "edit" ? (
+              <div
+                style={{ display: "flex", flexDirection: "column", gap: 16 }}
+              >
                 <div
                   style={{
                     display: "flex",
                     justifyContent: "space-between",
-                    alignItems: "baseline",
-                    marginBottom: 6,
+                    alignItems: "center",
                   }}
                 >
-                  <span style={{ fontSize: 12, color: "var(--ink-muted)" }}>
-                    {checkedCount} of {allItems.length} completed
-                  </span>
-                  <span
+                  <div
                     style={{
-                      fontSize: 12,
-                      fontWeight: 500,
+                      fontFamily: "var(--font-display)",
+                      fontSize: 18,
                       color: "var(--ink)",
                     }}
                   >
-                    {Math.round(progress * 100)}%
-                  </span>
+                    Edit Prescription Template
+                  </div>
+                  <button
+                    onClick={() => setTemplateEditMode("view")}
+                    style={{ ...navBtn, padding: "6px 12px", fontSize: 12 }}
+                  >
+                    Done
+                  </button>
                 </div>
-                <div
-                  style={{
-                    height: 4,
-                    background: "var(--cream-border)",
-                    borderRadius: 2,
-                    overflow: "hidden",
-                  }}
-                >
-                  <div
+
+                <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+                  <button
+                    onClick={() => setEditingTemplate("study")}
                     style={{
-                      height: "100%",
-                      width: `${progress * 100}%`,
+                      flex: 1,
+                      padding: "8px",
+                      fontSize: 13,
+                      border: "1px solid var(--cream-border)",
+                      borderRadius: "var(--radius-sm)",
+                      cursor: "pointer",
+                      fontFamily: "var(--font-body)",
                       background:
-                        progress === 1 ? "var(--green)" : "var(--accent)",
-                      borderRadius: 2,
-                      transition: "width 0.3s ease",
-                    }}
-                  />
-                </div>
-              </div>
-            )}
-
-            {!restDay && (
-              <div
-                style={{
-                  background: "var(--cream-dark)",
-                  borderRadius: "var(--radius)",
-                  padding: "12px 16px",
-                  marginBottom: 16,
-                  borderLeft: "3px solid var(--accent-light)",
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: 11,
-                    color: "var(--ink-faint)",
-                    marginBottom: 2,
-                  }}
-                >
-                  {"This week's subject"}
-                </div>
-                <div
-                  style={{ fontSize: 14, fontWeight: 500, color: "var(--ink)" }}
-                >
-                  {subject}
-                </div>
-              </div>
-            )}
-
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              {allItems.map((item) => {
-                const done = !!checks[item.id];
-                const tag =
-                  TAG_STYLES[item.custom ? "custom" : item.tag] ||
-                  TAG_STYLES.rest;
-                return (
-                  <div
-                    key={item.id}
-                    style={{
-                      display: "flex",
-                      alignItems: "flex-start",
-                      gap: 8,
+                        editingTemplate === "study"
+                          ? "var(--accent)"
+                          : "var(--cream-dark)",
+                      color:
+                        editingTemplate === "study"
+                          ? "white"
+                          : "var(--ink-muted)",
                     }}
                   >
-                    <div
-                      onClick={() => toggle(item.id)}
+                    Study Days
+                  </button>
+                  <button
+                    onClick={() => setEditingTemplate("rest")}
+                    style={{
+                      flex: 1,
+                      padding: "8px",
+                      fontSize: 13,
+                      border: "1px solid var(--cream-border)",
+                      borderRadius: "var(--radius-sm)",
+                      cursor: "pointer",
+                      fontFamily: "var(--font-body)",
+                      background:
+                        editingTemplate === "rest"
+                          ? "var(--accent)"
+                          : "var(--cream-dark)",
+                      color:
+                        editingTemplate === "rest"
+                          ? "white"
+                          : "var(--ink-muted)",
+                    }}
+                  >
+                    Rest Days
+                  </button>
+                </div>
+
+                {editingTemplate && (
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 12,
+                    }}
+                  >
+                    {(editingTemplate === "study"
+                      ? studyTemplate
+                      : restTemplate
+                    ).map((item, idx) => (
+                      <div
+                        key={item.id}
+                        style={{
+                          background: "var(--cream-dark)",
+                          padding: 12,
+                          borderRadius: "var(--radius-sm)",
+                          border: "1px solid var(--cream-border)",
+                        }}
+                      >
+                        <input
+                          value={item.label}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (editingTemplate === "study") {
+                              const next = [...studyTemplate];
+                              next[idx].label = val;
+                              setStudyTemplate(next);
+                              saveJSON("studyTemplate", next);
+                            } else {
+                              const next = [...restTemplate];
+                              next[idx].label = val;
+                              setRestTemplate(next);
+                              saveJSON("restTemplate", next);
+                            }
+                          }}
+                          placeholder="Task label"
+                          style={{
+                            width: "100%",
+                            padding: "6px 10px",
+                            marginBottom: 6,
+                            fontSize: 13,
+                            border: "1px solid var(--cream-border)",
+                            borderRadius: "var(--radius-sm)",
+                            background: "var(--cream)",
+                            color: "var(--ink)",
+                          }}
+                        />
+                        <div style={{ display: "flex", gap: 6 }}>
+                          <input
+                            value={item.time || ""}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (editingTemplate === "study") {
+                                const next = [...studyTemplate];
+                                next[idx].time = val || undefined;
+                                setStudyTemplate(next);
+                                saveJSON("studyTemplate", next);
+                              } else {
+                                const next = [...restTemplate];
+                                next[idx].time = val || undefined;
+                                setRestTemplate(next);
+                                saveJSON("restTemplate", next);
+                              }
+                            }}
+                            placeholder="Time"
+                            style={{
+                              flex: 1,
+                              padding: "6px 10px",
+                              fontSize: 12,
+                              border: "1px solid var(--cream-border)",
+                              borderRadius: "var(--radius-sm)",
+                              background: "var(--cream)",
+                              color: "var(--ink)",
+                            }}
+                          />
+                          <input
+                            value={item.note || ""}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (editingTemplate === "study") {
+                                const next = [...studyTemplate];
+                                next[idx].note = val || undefined;
+                                setStudyTemplate(next);
+                                saveJSON("studyTemplate", next);
+                              } else {
+                                const next = [...restTemplate];
+                                next[idx].note = val || undefined;
+                                setRestTemplate(next);
+                                saveJSON("restTemplate", next);
+                              }
+                            }}
+                            placeholder="Subtitle/Note"
+                            style={{
+                              flex: 2,
+                              padding: "6px 10px",
+                              fontSize: 12,
+                              border: "1px solid var(--cream-border)",
+                              borderRadius: "var(--radius-sm)",
+                              background: "var(--cream)",
+                              color: "var(--ink)",
+                            }}
+                          />
+                        </div>
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "flex-end",
+                            marginTop: 8,
+                          }}
+                        >
+                          <button
+                            onClick={() => {
+                              if (editingTemplate === "study") {
+                                const next = studyTemplate.filter(
+                                  (_, i) => i !== idx,
+                                );
+                                setStudyTemplate(next);
+                                saveJSON("studyTemplate", next);
+                              } else {
+                                const next = restTemplate.filter(
+                                  (_, i) => i !== idx,
+                                );
+                                setRestTemplate(next);
+                                saveJSON("restTemplate", next);
+                              }
+                            }}
+                            style={{
+                              background: "none",
+                              border: "none",
+                              color: "var(--red)",
+                              fontSize: 12,
+                              cursor: "pointer",
+                            }}
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                    <button
+                      onClick={() => {
+                        const newTask: ChecklistItem = {
+                          id: `template-${Date.now()}`,
+                          label: "New Task",
+                          tag: "study",
+                        };
+                        if (editingTemplate === "study") {
+                          const next = [...studyTemplate, newTask];
+                          setStudyTemplate(next);
+                          saveJSON("studyTemplate", next);
+                        } else {
+                          const next = [
+                            ...restTemplate,
+                            { ...newTask, tag: "rest" as const },
+                          ];
+                          setRestTemplate(next);
+                          saveJSON("restTemplate", next);
+                        }
+                      }}
                       style={{
-                        flex: 1,
-                        display: "flex",
-                        alignItems: "flex-start",
-                        gap: 12,
-                        padding: "12px 14px",
-                        background: done ? "var(--cream-dark)" : "var(--cream)",
+                        padding: "8px",
+                        fontSize: 13,
+                        border: "1px dashed var(--cream-border)",
+                        borderRadius: "var(--radius-sm)",
+                        background: "transparent",
+                        color: "var(--ink-faint)",
+                        cursor: "pointer",
+                      }}
+                    >
+                      + Add task to template
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        if (editingTemplate === "study") {
+                          setStudyTemplate(DEFAULT_STUDY_TEMPLATE);
+                          saveJSON("studyTemplate", DEFAULT_STUDY_TEMPLATE);
+                        } else {
+                          setRestTemplate(DEFAULT_REST_TEMPLATE);
+                          saveJSON("restTemplate", DEFAULT_REST_TEMPLATE);
+                        }
+                      }}
+                      style={{
+                        marginTop: 24,
+                        padding: "8px",
+                        fontSize: 12,
                         border: "1px solid var(--cream-border)",
                         borderRadius: "var(--radius-sm)",
+                        background: "transparent",
+                        color: "var(--ink-faint)",
                         cursor: "pointer",
-                        transition: "background 0.15s",
-                        opacity: done ? 0.65 : 1,
+                      }}
+                    >
+                      Reset to Default Template
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <>
+                {allItems.length > 0 && (
+                  <div style={{ marginBottom: 20 }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "baseline",
+                        marginBottom: 6,
+                      }}
+                    >
+                      <span style={{ fontSize: 12, color: "var(--ink-muted)" }}>
+                        {checkedCount} of {allItems.length} completed
+                      </span>
+                      <span
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 500,
+                          color: "var(--ink)",
+                        }}
+                      >
+                        {Math.round(progress * 100)}%
+                      </span>
+                    </div>
+                    <div
+                      style={{
+                        height: 4,
+                        background: "var(--cream-border)",
+                        borderRadius: 2,
+                        overflow: "hidden",
                       }}
                     >
                       <div
                         style={{
-                          width: 18,
-                          height: 18,
-                          borderRadius: 4,
-                          flexShrink: 0,
-                          marginTop: 1,
-                          border: `1.5px solid ${done ? "var(--green)" : "var(--cream-border)"}`,
-                          background: done ? "var(--green)" : "transparent",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          transition: "all 0.15s",
+                          height: "100%",
+                          width: `${progress * 100}%`,
+                          background:
+                            progress === 1 ? "var(--green)" : "var(--accent)",
+                          borderRadius: 2,
+                          transition: "width 0.3s ease",
                         }}
-                      >
-                        {done && (
-                          <svg
-                            width="10"
-                            height="8"
-                            viewBox="0 0 10 8"
-                            fill="none"
-                          >
-                            <path
-                              d="M1 4L3.5 6.5L9 1"
-                              stroke="white"
-                              strokeWidth="1.5"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
-                        )}
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 8,
-                            flexWrap: "wrap",
-                          }}
-                        >
-                          <span
-                            style={{
-                              fontSize: 13,
-                              fontWeight: 500,
-                              color: "var(--ink)",
-                              textDecoration: done ? "line-through" : "none",
-                            }}
-                          >
-                            {item.label}
-                          </span>
-                          <span
-                            style={{
-                              fontSize: 10,
-                              padding: "1px 6px",
-                              borderRadius: 3,
-                              background: tag.bg,
-                              color: tag.color,
-                              fontWeight: 500,
-                            }}
-                          >
-                            {tag.label}
-                          </span>
-                        </div>
-                        {item.time && (
-                          <div
-                            style={{
-                              fontSize: 11,
-                              color: "var(--ink-faint)",
-                              marginTop: 1,
-                            }}
-                          >
-                            {item.time}
-                          </div>
-                        )}
-                        {item.note && (
-                          <div
-                            style={{
-                              fontSize: 12,
-                              color: "var(--ink-muted)",
-                              marginTop: 3,
-                              fontStyle: "italic",
-                            }}
-                          >
-                            {item.note}
-                          </div>
-                        )}
-                      </div>
+                      />
                     </div>
-                    <button
-                      onClick={() =>
-                        item.custom
-                          ? removeCustomTask(item.id)
-                          : removePrescribedTask(item.id)
-                      }
-                      title="Remove"
+                  </div>
+                )}
+
+                {!restDay && (
+                  <div
+                    style={{
+                      background: "var(--cream-dark)",
+                      borderRadius: "var(--radius)",
+                      padding: "12px 16px",
+                      marginBottom: 16,
+                      borderLeft: "3px solid var(--accent-light)",
+                    }}
+                  >
+                    <div
                       style={{
-                        width: 30,
-                        height: 30,
-                        borderRadius: "var(--radius-sm)",
-                        flexShrink: 0,
-                        marginTop: 8,
-                        border: "1px solid var(--cream-border)",
-                        background: "var(--cream-dark)",
-                        cursor: "pointer",
+                        fontSize: 11,
                         color: "var(--ink-faint)",
-                        fontSize: 16,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
+                        marginBottom: 2,
                       }}
                     >
-                      ×
+                      {"This week's subject"}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 14,
+                        fontWeight: 500,
+                        color: "var(--ink)",
+                      }}
+                    >
+                      {subject}
+                    </div>
+                  </div>
+                )}
+
+                <div
+                  style={{ display: "flex", flexDirection: "column", gap: 6 }}
+                >
+                  {allItems.map((item) => {
+                    const done = !!checks[item.id];
+                    const tag =
+                      TAG_STYLES[item.custom ? "custom" : item.tag] ||
+                      TAG_STYLES.rest;
+                    return (
+                      <div
+                        key={item.id}
+                        style={{
+                          display: "flex",
+                          alignItems: "flex-start",
+                          gap: 8,
+                        }}
+                      >
+                        <div
+                          onClick={() => toggle(item.id)}
+                          style={{
+                            flex: 1,
+                            display: "flex",
+                            alignItems: "flex-start",
+                            gap: 12,
+                            padding: "12px 14px",
+                            background: done
+                              ? "var(--cream-dark)"
+                              : "var(--cream)",
+                            border: "1px solid var(--cream-border)",
+                            borderRadius: "var(--radius-sm)",
+                            cursor: "pointer",
+                            transition: "background 0.15s",
+                            opacity: done ? 0.65 : 1,
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: 18,
+                              height: 18,
+                              borderRadius: 4,
+                              flexShrink: 0,
+                              marginTop: 1,
+                              border: `1.5px solid ${done ? "var(--green)" : "var(--cream-border)"}`,
+                              background: done ? "var(--green)" : "transparent",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              transition: "all 0.15s",
+                            }}
+                          >
+                            {done && (
+                              <svg
+                                width="10"
+                                height="8"
+                                viewBox="0 0 10 8"
+                                fill="none"
+                              >
+                                <path
+                                  d="M1 4L3.5 6.5L9 1"
+                                  stroke="white"
+                                  strokeWidth="1.5"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              </svg>
+                            )}
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 8,
+                                flexWrap: "wrap",
+                              }}
+                            >
+                              <span
+                                style={{
+                                  fontSize: 13,
+                                  fontWeight: 500,
+                                  color: "var(--ink)",
+                                  textDecoration: done
+                                    ? "line-through"
+                                    : "none",
+                                }}
+                              >
+                                {item.label}
+                              </span>
+                              <span
+                                style={{
+                                  fontSize: 10,
+                                  padding: "1px 6px",
+                                  borderRadius: 3,
+                                  background: tag.bg,
+                                  color: tag.color,
+                                  fontWeight: 500,
+                                }}
+                              >
+                                {tag.label}
+                              </span>
+                            </div>
+                            {item.time && (
+                              <div
+                                style={{
+                                  fontSize: 11,
+                                  color: "var(--ink-faint)",
+                                  marginTop: 1,
+                                }}
+                              >
+                                {item.time}
+                              </div>
+                            )}
+                            {item.note && (
+                              <div
+                                style={{
+                                  fontSize: 12,
+                                  color: "var(--ink-muted)",
+                                  marginTop: 3,
+                                  fontStyle: "italic",
+                                }}
+                              >
+                                {item.note}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() =>
+                            item.custom
+                              ? removeCustomTask(item.id)
+                              : removePrescribedTask(item.id)
+                          }
+                          title="Remove"
+                          style={{
+                            width: 30,
+                            height: 30,
+                            borderRadius: "var(--radius-sm)",
+                            flexShrink: 0,
+                            marginTop: 8,
+                            border: "1px solid var(--cream-border)",
+                            background: "var(--cream-dark)",
+                            cursor: "pointer",
+                            color: "var(--ink-faint)",
+                            fontSize: 16,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* restore tasks button */}
+                {deletedTasks.length > 0 && (
+                  <div style={{ marginTop: 12, textAlign: "right" }}>
+                    <button
+                      onClick={restorePrescribedTasks}
+                      style={{
+                        fontSize: 12,
+                        color: "var(--ink-muted)",
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        textDecoration: "underline",
+                      }}
+                    >
+                      Restore {deletedTasks.length} removed task
+                      {deletedTasks.length !== 1 ? "s" : ""}
                     </button>
                   </div>
-                );
-              })}
-            </div>
+                )}
 
-            {/* restore tasks button */}
-            {deletedTasks.length > 0 && (
-              <div style={{ marginTop: 12, textAlign: "right" }}>
-                <button
-                  onClick={restorePrescribedTasks}
+                {/* add custom task */}
+                <div style={{ marginTop: 16 }}>
+                  {showAddTask ? (
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 8,
+                        background: "var(--cream-dark)",
+                        padding: 12,
+                        borderRadius: "var(--radius)",
+                        border: "1px solid var(--cream-border)",
+                      }}
+                    >
+                      <input
+                        autoFocus
+                        value={newTaskLabel}
+                        onChange={(e) => setNewTaskLabel(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && newTaskLabel.trim())
+                            addCustomTask();
+                          if (e.key === "Escape") setShowAddTask(false);
+                        }}
+                        placeholder="Task description... (required)"
+                        style={{
+                          width: "100%",
+                          padding: "8px 12px",
+                          fontSize: 13,
+                          border: "1px solid var(--cream-border)",
+                          borderRadius: "var(--radius-sm)",
+                          background: "var(--cream)",
+                          color: "var(--ink)",
+                          fontFamily: "var(--font-body)",
+                          outline: "none",
+                        }}
+                      />
+                      <div style={{ display: "flex", gap: 8 }}>
+                        <input
+                          value={newTaskTime}
+                          onChange={(e) => setNewTaskTime(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && newTaskLabel.trim())
+                              addCustomTask();
+                            if (e.key === "Escape") setShowAddTask(false);
+                          }}
+                          placeholder="Time (e.g. 5:30 AM)"
+                          style={{
+                            flex: 1,
+                            padding: "8px 12px",
+                            fontSize: 13,
+                            border: "1px solid var(--cream-border)",
+                            borderRadius: "var(--radius-sm)",
+                            background: "var(--cream)",
+                            color: "var(--ink)",
+                            fontFamily: "var(--font-body)",
+                            outline: "none",
+                          }}
+                        />
+                        <input
+                          value={newTaskNote}
+                          onChange={(e) => setNewTaskNote(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && newTaskLabel.trim())
+                              addCustomTask();
+                            if (e.key === "Escape") setShowAddTask(false);
+                          }}
+                          placeholder="Subtitle/Note"
+                          style={{
+                            flex: 2,
+                            padding: "8px 12px",
+                            fontSize: 13,
+                            border: "1px solid var(--cream-border)",
+                            borderRadius: "var(--radius-sm)",
+                            background: "var(--cream)",
+                            color: "var(--ink)",
+                            fontFamily: "var(--font-body)",
+                            outline: "none",
+                          }}
+                        />
+                      </div>
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: 8,
+                          justifyContent: "flex-end",
+                          marginTop: 4,
+                        }}
+                      >
+                        <button
+                          onClick={() => setShowAddTask(false)}
+                          style={{
+                            padding: "6px 12px",
+                            fontSize: 12,
+                            border: "1px solid var(--cream-border)",
+                            borderRadius: "var(--radius-sm)",
+                            background: "var(--cream)",
+                            color: "var(--ink-muted)",
+                            cursor: "pointer",
+                            fontFamily: "var(--font-body)",
+                          }}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={addCustomTask}
+                          disabled={!newTaskLabel.trim()}
+                          style={{
+                            padding: "6px 12px",
+                            fontSize: 12,
+                            border: "none",
+                            borderRadius: "var(--radius-sm)",
+                            background: newTaskLabel.trim()
+                              ? "var(--accent)"
+                              : "var(--cream-border)",
+                            color: "white",
+                            cursor: newTaskLabel.trim()
+                              ? "pointer"
+                              : "not-allowed",
+                            fontFamily: "var(--font-body)",
+                          }}
+                        >
+                          Add Task
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setShowAddTask(true)}
+                      style={{
+                        width: "100%",
+                        padding: "9px 0",
+                        fontSize: 13,
+                        border: "1px dashed var(--cream-border)",
+                        borderRadius: "var(--radius-sm)",
+                        background: "transparent",
+                        color: "var(--ink-faint)",
+                        cursor: "pointer",
+                        fontFamily: "var(--font-body)",
+                      }}
+                    >
+                      + Add custom task
+                    </button>
+                  )}
+                </div>
+
+                <div
                   style={{
-                    fontSize: 12,
-                    color: "var(--ink-muted)",
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                    textDecoration: "underline",
+                    marginTop: 24,
+                    display: "flex",
+                    justifyContent: "center",
                   }}
                 >
-                  Restore {deletedTasks.length} removed task
-                  {deletedTasks.length !== 1 ? "s" : ""}
-                </button>
-              </div>
-            )}
-
-            {/* add custom task */}
-            <div style={{ marginTop: 16 }}>
-              {showAddTask ? (
-                <div style={{ display: "flex", gap: 8 }}>
-                  <input
-                    autoFocus
-                    value={newTaskLabel}
-                    onChange={(e) => setNewTaskLabel(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") addCustomTask();
-                      if (e.key === "Escape") setShowAddTask(false);
-                    }}
-                    placeholder="Task description..."
-                    style={{
-                      flex: 1,
-                      padding: "8px 12px",
-                      fontSize: 13,
-                      border: "1px solid var(--cream-border)",
-                      borderRadius: "var(--radius-sm)",
-                      background: "var(--cream-dark)",
-                      color: "var(--ink)",
-                      fontFamily: "var(--font-body)",
-                      outline: "none",
-                    }}
-                  />
                   <button
-                    onClick={addCustomTask}
+                    onClick={() => {
+                      setTemplateEditMode("edit");
+                      setEditingTemplate(restDay ? "rest" : "study");
+                    }}
                     style={{
-                      padding: "8px 14px",
-                      fontSize: 13,
+                      padding: "6px 12px",
+                      fontSize: 11,
                       border: "none",
-                      borderRadius: "var(--radius-sm)",
-                      background: "var(--accent)",
-                      color: "white",
-                      cursor: "pointer",
-                      fontFamily: "var(--font-body)",
-                    }}
-                  >
-                    Add
-                  </button>
-                  <button
-                    onClick={() => setShowAddTask(false)}
-                    style={{
-                      padding: "8px 14px",
-                      fontSize: 13,
-                      border: "1px solid var(--cream-border)",
-                      borderRadius: "var(--radius-sm)",
-                      background: "var(--cream-dark)",
+                      background: "transparent",
                       color: "var(--ink-muted)",
                       cursor: "pointer",
+                      textDecoration: "underline",
                       fontFamily: "var(--font-body)",
                     }}
                   >
-                    Cancel
+                    Edit prescription template
                   </button>
                 </div>
-              ) : (
-                <button
-                  onClick={() => setShowAddTask(true)}
-                  style={{
-                    width: "100%",
-                    padding: "9px 0",
-                    fontSize: 13,
-                    border: "1px dashed var(--cream-border)",
-                    borderRadius: "var(--radius-sm)",
-                    background: "transparent",
-                    color: "var(--ink-faint)",
-                    cursor: "pointer",
-                    fontFamily: "var(--font-body)",
-                  }}
-                >
-                  + Add custom task
-                </button>
-              )}
-            </div>
 
-            {progress === 1 && allItems.length > 0 && (
-              <div
-                style={{
-                  marginTop: 20,
-                  padding: "14px 16px",
-                  background: "var(--green-bg)",
-                  borderRadius: "var(--radius)",
-                  textAlign: "center",
-                }}
-              >
-                <div
-                  style={{
-                    fontFamily: "var(--font-display)",
-                    fontSize: 16,
-                    color: "var(--green)",
-                  }}
-                >
-                  Day complete.
-                </div>
-                <div
-                  style={{
-                    fontSize: 12,
-                    color: "var(--green)",
-                    marginTop: 2,
-                    opacity: 0.8,
-                  }}
-                >
-                  One more day closer to topnotcher.
-                </div>
-              </div>
+                {progress === 1 && allItems.length > 0 && (
+                  <div
+                    style={{
+                      marginTop: 20,
+                      padding: "14px 16px",
+                      background: "var(--green-bg)",
+                      borderRadius: "var(--radius)",
+                      textAlign: "center",
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontFamily: "var(--font-display)",
+                        fontSize: 16,
+                        color: "var(--green)",
+                      }}
+                    >
+                      Day complete.
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 12,
+                        color: "var(--green)",
+                        marginTop: 2,
+                        opacity: 0.8,
+                      }}
+                    >
+                      One more day closer to topnotcher.
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </>
         )}
