@@ -84,7 +84,7 @@ You can easily wrap this web application into a native desktop application using
    - App name: `CBLE Tracker`
    - Window title: `The Long Game`
    - Web assets location: `../dist`
-   - Dev server URL: `http://localhost:5173`
+   - Dev server URL: `http://localhost:9326`
    - Dev command: `npm run dev`
    - Build command: `npm run build`
 
