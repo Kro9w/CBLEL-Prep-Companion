@@ -73,7 +73,7 @@ export default function Onboarding({
               marginBottom: 8,
             }}
           >
-            CBLEL Companion
+            CBLEL Review Companion
           </div>
           <div style={{ fontSize: 14, color: "var(--ink-muted)" }}>
             The Licensed Librarian Roadmap
@@ -91,7 +91,7 @@ export default function Onboarding({
           >
             <div
               style={{
-                fontSize: 16,
+                fontSize: 15,
                 fontWeight: 500,
                 marginBottom: 16,
                 textAlign: "center",
@@ -159,7 +159,7 @@ export default function Onboarding({
                 marginBottom: 20,
               }}
             >
-              This app assigns one subject per week on a repeating 6-week cycle.
+              The app assigns one subject per week on a repeating 6-week cycle.
               Reorder them below if you prefer a different sequence.
             </div>
 
@@ -312,7 +312,9 @@ export default function Onboarding({
               }}
             >
               Customize which days of the week you study, and how many days you
-              spend on a subject before moving to the next.
+              spend on a subject before moving to the next. The daily checklist
+              we provide is just a prescription—you can freely add or remove
+              tasks to fit your actual day.
             </div>
 
             <div style={{ marginBottom: 20 }}>

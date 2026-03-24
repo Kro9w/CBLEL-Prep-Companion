@@ -27,15 +27,15 @@ const DEFAULT_MILESTONES = [
     id: "registration",
     label: "Board Registration",
     dateStr: "2026-06-05",
-    color: "#3D6B4F",
-    bg: "#E8F0EB",
+    color: "var(--green)",
+    bg: "var(--green-bg)",
   },
   {
     id: "exam",
-    label: "CBLE Exam",
+    label: "CBLEL Exam",
     dateStr: "2026-09-03",
-    color: "#8B6F47",
-    bg: "#F0E9DE",
+    color: "var(--accent)",
+    bg: "var(--accent-bg)",
   },
 ];
 
@@ -242,11 +242,11 @@ export const TAG_STYLES: Record<
   string,
   { label: string; color: string; bg: string }
 > = {
-  study: { label: "Study", color: "#2C4A7C", bg: "#E8EDF5" },
-  mock: { label: "Mock exam", color: "#8B3A3A", bg: "#F5E8E8" },
-  leisure: { label: "Leisure", color: "#6B5A3A", bg: "#F5F0E8" },
-  rest: { label: "Rest", color: "#6B6558", bg: "#EFECE6" },
-  custom: { label: "Custom", color: "#4A6B5A", bg: "#E8F5EE" },
+  study: { label: "Study", color: "var(--blue)", bg: "var(--blue-bg)" },
+  mock: { label: "Mock exam", color: "var(--red)", bg: "var(--red-bg)" },
+  leisure: { label: "Leisure", color: "var(--accent)", bg: "var(--accent-bg)" },
+  rest: { label: "Rest", color: "var(--ink-muted)", bg: "var(--cream-dark)" },
+  custom: { label: "Custom", color: "var(--green)", bg: "var(--green-bg)" },
 };
 
 const DAY_NAMES = [
@@ -282,6 +282,9 @@ function storageKey(d: Date) {
 }
 function customKey(d: Date) {
   return `custom-${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+}
+function deletedKey(d: Date) {
+  return `deleted-${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
 }
 
 // ── app ───────────────────────────────────────────────────────────────────────
@@ -319,6 +322,7 @@ export default function App() {
   const [milestones, setMilestones] = useState<MilestoneData[]>(loadMilestones);
   const [editingMilestone, setEditingMilestone] = useState<string | null>(null);
   const [customTasks, setCustomTasks] = useState<ChecklistItem[]>([]);
+  const [deletedTasks, setDeletedTasks] = useState<string[]>([]);
   const [newTaskLabel, setNewTaskLabel] = useState("");
   const [showAddTask, setShowAddTask] = useState(false);
   const [tourSeen, setTourSeen] = useState(() => loadJSON("tourSeen", false));
@@ -351,7 +355,13 @@ export default function App() {
     } catch {
       setCustomTasks([]);
     }
-  }, [dateKey]);
+    try {
+      const s = localStorage.getItem(deletedKey(viewDate));
+      setDeletedTasks(s ? JSON.parse(s) : []);
+    } catch {
+      setDeletedTasks([]);
+    }
+  }, [dateKey, viewDate]);
 
   function toggle(id: string) {
     setChecks((prev) => {
@@ -391,6 +401,29 @@ export default function App() {
       } catch {}
       return n;
     });
+  }
+
+  function removePrescribedTask(id: string) {
+    const next = [...deletedTasks, id];
+    setDeletedTasks(next);
+    try {
+      localStorage.setItem(deletedKey(viewDate), JSON.stringify(next));
+    } catch {}
+    setChecks((prev) => {
+      const n = { ...prev };
+      delete n[id];
+      try {
+        localStorage.setItem(dateKey, JSON.stringify(n));
+      } catch {}
+      return n;
+    });
+  }
+
+  function restorePrescribedTasks() {
+    setDeletedTasks([]);
+    try {
+      localStorage.removeItem(deletedKey(viewDate));
+    } catch {}
   }
 
   function shiftDate(delta: number) {
@@ -438,7 +471,10 @@ export default function App() {
     cycleLength,
     studyDays,
   );
-  const allItems = [...builtItems, ...customTasks];
+  const allItems = [
+    ...builtItems.filter((i) => !deletedTasks.includes(i.id)),
+    ...customTasks,
+  ];
   const checkedCount = allItems.filter((i) => checks[i.id]).length;
   const progress = allItems.length > 0 ? checkedCount / allItems.length : 0;
   const { subject, short } = getSubjectForDate(
@@ -497,7 +533,7 @@ export default function App() {
           <div
             style={{ fontSize: 12, color: "var(--ink-faint)", marginTop: 2 }}
           >
-            CBLE {examDate.getFullYear()} · topnotcher roadmap
+            CBLEL {examDate.getFullYear()} · The Licensed Librarian Roadmap
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -862,33 +898,55 @@ export default function App() {
                         )}
                       </div>
                     </div>
-                    {item.custom && (
-                      <button
-                        onClick={() => removeCustomTask(item.id)}
-                        title="Remove"
-                        style={{
-                          width: 30,
-                          height: 30,
-                          borderRadius: "var(--radius-sm)",
-                          flexShrink: 0,
-                          marginTop: 8,
-                          border: "1px solid var(--cream-border)",
-                          background: "var(--cream-dark)",
-                          cursor: "pointer",
-                          color: "var(--ink-faint)",
-                          fontSize: 16,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
-                      >
-                        ×
-                      </button>
-                    )}
+                    <button
+                      onClick={() =>
+                        item.custom
+                          ? removeCustomTask(item.id)
+                          : removePrescribedTask(item.id)
+                      }
+                      title="Remove"
+                      style={{
+                        width: 30,
+                        height: 30,
+                        borderRadius: "var(--radius-sm)",
+                        flexShrink: 0,
+                        marginTop: 8,
+                        border: "1px solid var(--cream-border)",
+                        background: "var(--cream-dark)",
+                        cursor: "pointer",
+                        color: "var(--ink-faint)",
+                        fontSize: 16,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      ×
+                    </button>
                   </div>
                 );
               })}
             </div>
+
+            {/* restore tasks button */}
+            {deletedTasks.length > 0 && (
+              <div style={{ marginTop: 12, textAlign: "right" }}>
+                <button
+                  onClick={restorePrescribedTasks}
+                  style={{
+                    fontSize: 12,
+                    color: "var(--ink-muted)",
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    textDecoration: "underline",
+                  }}
+                >
+                  Restore {deletedTasks.length} removed task
+                  {deletedTasks.length !== 1 ? "s" : ""}
+                </button>
+              </div>
+            )}
 
             {/* add custom task */}
             <div style={{ marginTop: 16 }}>
@@ -1129,7 +1187,7 @@ export default function App() {
                   marginBottom: 4,
                 }}
               >
-                Days to CBLE exam
+                Days to CBLEL
               </div>
               <div
                 style={{

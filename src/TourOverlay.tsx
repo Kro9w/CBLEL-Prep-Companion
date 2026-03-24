@@ -64,8 +64,9 @@ export default function TourOverlay({ onDismiss }: { onDismiss: () => void }) {
                 lineHeight: 1.6,
               }}
             >
-              This Companion is designed to keep you focused, disciplined, and
-              on track for the CBLE. Let's take a quick tour of how it works.
+              This review companion is designed to keep you focused,
+              disciplined, and on track for the CBLEL. Let's take a quick tour
+              of how it works.
             </div>
           </div>
         )}
@@ -120,8 +121,9 @@ export default function TourOverlay({ onDismiss }: { onDismiss: () => void }) {
               }}
             >
               The Checklist tab automatically generates a daily routine based on
-              your assigned subject for the week. Complete at least 50% of the
-              list to maintain your streak.
+              your assigned subject for the week. This is just a
+              prescription—you can remove items or add your own to fit your day.
+              Complete at least 50% of the list to maintain your streak.
             </div>
           </div>
         )}

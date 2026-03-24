@@ -121,6 +121,9 @@ function checksKey(d: Date) {
 function customKey(d: Date) {
   return `custom-${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
 }
+function deletedKey(d: Date) {
+  return `deleted-${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+}
 function scoreKey(d: Date) {
   return `score-${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
 }
@@ -159,13 +162,16 @@ function isDayCompleted(
   studyDays: number[],
 ): boolean {
   if (isRestDay(d, studyDays)) return true;
+  const deletedTasks: string[] = loadJSON(deletedKey(d), []);
   const builtIds = buildChecklist(
     d,
     startDateStr,
     subjects,
     cycleLength,
     studyDays,
-  ).map((i) => i.id);
+  )
+    .map((i) => i.id)
+    .filter((id) => !deletedTasks.includes(id));
   const customTasks: { id: string }[] = loadJSON(customKey(d), []);
   const allIds = [...builtIds, ...customTasks.map((t) => t.id)];
   if (allIds.length === 0) return false;
@@ -221,13 +227,16 @@ function computeStudyStats(
       if (isDayCompleted(d, startDateStr, subjects, cycleLength, studyDays))
         completed++;
       // actual 100% for rate display
+      const deletedTasks: string[] = loadJSON(deletedKey(d), []);
       const builtIds = buildChecklist(
         d,
         startDateStr,
         subjects,
         cycleLength,
         studyDays,
-      ).map((i) => i.id);
+      )
+        .map((i) => i.id)
+        .filter((id) => !deletedTasks.includes(id));
       const customTasks: { id: string }[] = loadJSON(customKey(d), []);
       const allIds = [...builtIds, ...customTasks.map((t) => t.id)];
       const checks = loadJSON<Record<string, boolean>>(checksKey(d), {});
@@ -515,13 +524,16 @@ function WeeklyOverview({
         const score = loadJSON<number | null>(scoreKey(d), null);
         let completion = 0;
         if (!rest) {
+          const deletedTasks: string[] = loadJSON(deletedKey(d), []);
           const builtIds = buildChecklist(
             d,
             startDateStr,
             subjects,
             cycleLength,
             studyDays,
-          ).map((i) => i.id);
+          )
+            .map((i) => i.id)
+            .filter((id) => !deletedTasks.includes(id));
           const custom: { id: string }[] = loadJSON(customKey(d), []);
           const allIds = [...builtIds, ...custom.map((t) => t.id)];
           const checks = loadJSON<Record<string, boolean>>(checksKey(d), {});
@@ -577,8 +589,8 @@ function WeeklyOverview({
                     padding: "1px 4px",
                     borderRadius: 3,
                     marginBottom: 3,
-                    background: "#E8EDF5",
-                    color: "#2C4A7C",
+                    background: "var(--blue-bg)",
+                    color: "var(--blue)",
                   }}
                 >
                   {short}
@@ -592,20 +604,20 @@ function WeeklyOverview({
                       marginBottom: 3,
                       background:
                         score >= 90
-                          ? "#E8F0EB"
+                          ? "var(--green-bg)"
                           : score >= 75
-                            ? "#EAF5E0"
+                            ? "var(--blue-bg)"
                             : score >= 50
-                              ? "#F5F0E8"
-                              : "#F5E8E8",
+                              ? "var(--accent-bg)"
+                              : "var(--red-bg)",
                       color:
                         score >= 90
-                          ? "#3D6B4F"
+                          ? "var(--green)"
                           : score >= 75
-                            ? "#4A7A28"
+                            ? "var(--blue)"
                             : score >= 50
-                              ? "#6B5A3A"
-                              : "#8B3A3A",
+                              ? "var(--accent)"
+                              : "var(--red)",
                     }}
                   >
                     {score}/100
@@ -718,10 +730,10 @@ export default function Dashboard({
       ? latestScore >= 90
         ? "var(--green)"
         : latestScore >= 75
-          ? "#4A7A28"
+          ? "var(--blue)"
           : latestScore >= 50
             ? "var(--accent)"
-            : "#8B3A3A"
+            : "var(--red)"
       : "var(--ink-faint)";
 
   const quote = getDailyQuote();
@@ -779,7 +791,7 @@ export default function Dashboard({
         }}
       >
         <StatCard
-          label="Days to CBLE"
+          label="Days to CBLEL"
           value={daysToBoard}
           sub={examDate.toLocaleDateString("en-PH", {
             month: "short",
@@ -1020,9 +1032,21 @@ export default function Dashboard({
           style={{ display: "flex", gap: 12, marginTop: 10, flexWrap: "wrap" }}
         >
           {[
-            { bg: "#E8EDF5", color: "#2C4A7C", label: "Board subject" },
-            { bg: "#E8F0EB", color: "#3D6B4F", label: "Score: 90+" },
-            { bg: "#EAF5E0", color: "#4A7A28", label: "Score: 75-89" },
+            {
+              bg: "var(--blue-bg)",
+              color: "var(--blue)",
+              label: "Board subject",
+            },
+            {
+              bg: "var(--green-bg)",
+              color: "var(--green)",
+              label: "Score: 90+",
+            },
+            {
+              bg: "var(--blue-bg)",
+              color: "var(--blue)",
+              label: "Score: 75-89",
+            },
           ].map((l) => (
             <div
               key={l.label}
@@ -1034,7 +1058,7 @@ export default function Dashboard({
                   height: 8,
                   borderRadius: 2,
                   background: l.bg,
-                  border: `1px solid ${l.color}30`,
+                  border: `1px solid ${l.color}`,
                 }}
               />
               <span style={{ fontSize: 10, color: "var(--ink-faint)" }}>
@@ -1095,22 +1119,27 @@ export default function Dashboard({
             {
               label: "90–100",
               note: "Topnotcher",
-              bg: "#E8F0EB",
-              color: "#3D6B4F",
+              bg: "var(--green-bg)",
+              color: "var(--green)",
             },
             {
               label: "75–89",
               note: "Passing",
-              bg: "#EAF5E0",
-              color: "#4A7A28",
+              bg: "var(--blue-bg)",
+              color: "var(--blue)",
             },
             {
               label: "50–74",
               note: "Keep pushing",
-              bg: "#F5F0E8",
-              color: "#6B5A3A",
+              bg: "var(--accent-bg)",
+              color: "var(--accent)",
             },
-            { label: "0–49", note: "Review", bg: "#F5E8E8", color: "#8B3A3A" },
+            {
+              label: "0–49",
+              note: "Review",
+              bg: "var(--red-bg)",
+              color: "var(--red)",
+            },
           ].map((b) => (
             <div
               key={b.label}

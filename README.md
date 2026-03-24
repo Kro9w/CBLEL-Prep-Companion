@@ -1,11 +1,24 @@
-# CBLE Tracker
+# The Long Game: CBLE Tracker
 
-A daily routine + checklist app for CBLE board exam preparation.
-Built with React + Vite + TypeScript. Wrap with Tauri for a native Mac app.
+A daily routine, checklist, and Pomodoro app for Computer Based Licensure Examination (CBLE) board exam preparation. Built with React, Vite, and TypeScript.
+
+The Long Game is designed with a "Less is More" philosophy to keep you focused, disciplined, and on track.
 
 ---
 
-## Quick start
+## Features
+
+- **Customizable Onboarding:** Set your name, reorder the 6 CBLE subjects, and define your custom study cycle (e.g., 6 days per subject) and active study days.
+- **Dynamic Daily Checklist:** Automatically generates a daily routine based on your assigned subject for the week. The checklist is a _prescription_—you can freely remove items or add your own custom tasks to fit your actual day.
+- **Pomodoro Timer:** A built-in, floating 25/5 Pomodoro timer to help you maintain focus during study blocks.
+- **Mock Exams:** Take full timed exams or immediate-feedback sessions. Upload your own `.txt` question banks.
+- **Dashboard & Progress:** Track your study streak, days left until the exam, completion rates, and view a heat map of your recent mock exam scores.
+- **Dark Mode:** Fully responsive dark mode for late-night review sessions.
+- **Persistent Storage:** All your progress, custom tasks, deleted prescribed tasks, and mock exam scores are saved securely to your browser's `localStorage`.
+
+---
+
+## Quick start (Web)
 
 ```bash
 cd cble-tracker
@@ -13,68 +26,94 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:5173
+Open `http://localhost:5173` in your browser.
 
 ---
 
-## Build for production (web)
+## Build for production (Web)
 
 ```bash
 npm run build
-# Output in /dist — open dist/index.html
+# Output in /dist — you can serve this directory with any static web server
 ```
 
 ---
 
-## Wrap with Tauri (Mac app)
+## Build for Desktop (Windows .exe / Mac .app) using Tauri
 
-### Prerequisites
-- Rust: https://www.rust-lang.org/tools/install
-- Tauri CLI: `npm install -g @tauri-apps/cli`
-- Xcode Command Line Tools: `xcode-select --install`
+You can easily wrap this web application into a native desktop application using Tauri.
 
-### Add Tauri to this project
+### Prerequisites (Windows)
 
-```bash
-cd cble-tracker
-npm install @tauri-apps/api
-npx tauri init
-```
+1. **Microsoft C++ Build Tools:** Download and install the [Build Tools for Visual Studio](https://visualstudio.microsoft.com/visual-cpp-build-tools/). Make sure to check "Desktop development with C++" during installation.
+2. **WebView2:** Download and install the [WebView2 Runtime](https://developer.microsoft.com/en-us/microsoft-edge/webview2/#download-section) (if you are on Windows 11, this is usually pre-installed).
+3. **Rust:** Download and run `rustup-init.exe` from [rust-lang.org](https://www.rust-lang.org/tools/install).
+4. **Node.js:** Ensure you have Node.js installed.
 
-When prompted:
-- App name: CBLE Tracker
-- Window title: CBLE Tracker
-- Web assets location: `../dist`
-- Dev server URL: `http://localhost:5173`
-- Dev command: `npm run dev`
-- Build command: `npm run build`
+### Prerequisites (Mac)
 
-### Run in dev (native window)
+1. **Rust:** `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
+2. **Xcode Command Line Tools:** Run `xcode-select --install` in your terminal.
 
-```bash
-npx tauri dev
-```
+### Step-by-Step Tutorial to Wrap with Tauri
 
-### Build Mac .app
+1. **Install the Tauri CLI:**
 
-```bash
-npx tauri build
-# Output in src-tauri/target/release/bundle/macos/
-```
+   ```bash
+   npm install -D @tauri-apps/cli
+   ```
+
+2. **Initialize Tauri in the project:**
+
+   ```bash
+   npx tauri init
+   ```
+
+   _When prompted, answer the questions:_
+   - App name: `CBLE Tracker`
+   - Window title: `The Long Game`
+   - Web assets location: `../dist`
+   - Dev server URL: `http://localhost:5173`
+   - Dev command: `npm run dev`
+   - Build command: `npm run build`
+
+3. **Run in Development Mode (Native Window):**
+   This will start the Vite server and open the native Tauri desktop window.
+
+   ```bash
+   npx tauri dev
+   ```
+
+4. **Build the Final Executable:**
+   This command will compile the React app and package it into a native installer.
+   ```bash
+   npx tauri build
+   ```
+
+   - **On Windows:** The output will be an `.msi` or `.exe` installer located in `src-tauri/target/release/bundle/msi/`.
+   - **On Mac:** The output will be a `.dmg` or `.app` located in `src-tauri/target/release/bundle/macos/`.
 
 ---
 
-## Features
+## Mock Exam Format
 
-- Daily checklist auto-generated based on the date
-  - Adapts to capstone phase (Mar 23 – Apr 21) vs pure board prep (Apr 22 – Sep 2)
-  - Gym days (Mon, Tue, Thu, Fri) and cardio day (Wed) handled automatically
-  - Full rest on Sundays
-- Subject rotation: 1 subject per week across all 5 CBLE subjects
-- Progress bar per day
-- Milestone countdown (Final Defense, Graduation, Board Registration, CBLE Exam)
-- Checklist state saved to localStorage — persists across sessions
-- Navigate between dates with ← → buttons
+To use the Mock Exam feature, create a `.txt` file using the following format. The first line must be your exam code. Prefix the correct option with an asterisk `*`.
+
+```text
+LOM_1
+
+1. Which of the following is a cataloging standard?
+*A. AACR2
+B. HTML
+C. SQL
+D. ISBN
+
+2. The Dewey Decimal System classifies by?
+A. Author name
+*B. Subject
+C. Publication year
+D. Country
+```
 
 ---
 
@@ -82,5 +121,6 @@ npx tauri build
 
 Uses Google Fonts (Instrument Serif + DM Sans).
 For offline/Tauri use, download and bundle the fonts locally:
-https://fonts.google.com/specimen/Instrument+Serif
-https://fonts.google.com/specimen/DM+Sans
+
+- https://fonts.google.com/specimen/Instrument+Serif
+- https://fonts.google.com/specimen/DM+Sans
