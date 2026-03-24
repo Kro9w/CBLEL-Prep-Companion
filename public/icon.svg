@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <!-- Background -->
+  <rect width="512" height="512" rx="112" fill="#F5F1EA"/>
+
+  <!-- Hourglass outer shape -->
+  <path d="M168 108 L344 108 L344 124 L280 204 L280 236 L344 316 L344 404 L168 404 L168 316 L232 236 L232 204 L168 124 Z"
+        fill="none" stroke="#C4A882" stroke-width="10" stroke-linejoin="round"/>
+
+  <!-- Top sand (filled triangle, almost empty — time is being used) -->
+  <path d="M186 122 L326 122 L268 198 L244 198 Z" fill="#C4A882" opacity="0.35"/>
+
+  <!-- Small remaining top sand -->
+  <path d="M244 198 L268 198 L258 212 L254 212 Z" fill="#8B6F47" opacity="0.6"/>
+
+  <!-- Bottom sand (accumulated — progress made) -->
+  <path d="M186 390 L326 390 L326 330 L280 270 L232 270 L186 330 Z" fill="#8B6F47" opacity="0.55"/>
+
+  <!-- Waist dot — the pinch point -->
+  <circle cx="256" cy="236" r="6" fill="#8B6F47"/>
+
+  <!-- Rising path line through the bottom — subtle upward trend -->
+  <polyline points="198,375 222,348 244,355 268,328 296,312 318,290"
+            fill="none" stroke="#F5F1EA" stroke-width="4"
+            stroke-linecap="round" stroke-linejoin="round"
+            opacity="0.9"/>
+</svg>
