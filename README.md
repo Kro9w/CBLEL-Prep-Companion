@@ -8,10 +8,9 @@ The Long Game is designed with a "Less is More" philosophy to keep you focused, 
 
 <img width="1179" height="621" alt="Screenshot 2026-03-24 at 6 42 34 PM" src="https://github.com/user-attachments/assets/6075c213-48da-4905-a2d7-714335d52db0" />
 
-<img width="1434" height="667" alt="Screenshot 2026-03-24 at 7 41 15 PM" src="https://github.com/user-attachments/assets/080f4156-6b30-4e17-b968-785abb575332" />
+<img width="1432" height="667" alt="Screenshot 2026-03-24 at 7 39 33 PM" src="https://github.com/user-attachments/assets/e86f6af4-f422-4e2c-86de-34ecbb84101d" />
 
-<img width="1423" height="741" alt="Screenshot 2026-03-24 at 7 42 54 PM" src="https://github.com/user-attachments/assets/029e714d-8895-472d-b306-407c58f09de6" />
-
+---
 
 ## Features
 - **Customizable Onboarding:** Set your name, reorder the 6 CBLE subjects, and define your custom study cycle (e.g., 6 days per subject) and active study days.
@@ -21,6 +20,11 @@ The Long Game is designed with a "Less is More" philosophy to keep you focused, 
 - **Dashboard & Progress:** Track your study streak, days left until the exam, completion rates, and view a heat map of your recent mock exam scores.
 - **Dark Mode:** Fully responsive dark mode for late-night review sessions.
 - **Persistent Storage:** All your progress, custom tasks, deleted prescribed tasks, and mock exam scores are saved securely to your browser's `localStorage`.
+
+---
+<img width="1434" height="667" alt="Screenshot 2026-03-24 at 7 41 15 PM" src="https://github.com/user-attachments/assets/080f4156-6b30-4e17-b968-785abb575332" />
+
+<img width="1423" height="741" alt="Screenshot 2026-03-24 at 7 42 54 PM" src="https://github.com/user-attachments/assets/029e714d-8895-472d-b306-407c58f09de6" />
 
 ---
 
