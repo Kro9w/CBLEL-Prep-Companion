@@ -1,6 +1,6 @@
 # CBLEL PREP-Companion
 
-A daily routine, checklist, and Pomodoro app for the upcoming Computer Based Licensure Examination for Librarians (CBLEL). Built with React, Vite, and TypeScript.
+A daily routine, checklist, and Pomodoro app for the upcoming Computer Based Licensure Examination for Librarians (CBLEL).
 
 I hope this apps help you to keep you focused, disciplined, and on track.
 
@@ -24,7 +24,6 @@ I hope this apps help you to keep you focused, disciplined, and on track.
 
 
 - **Dashboard & Progress:** Track your study streak, days left until the exam, completion rates, and view a heat map of your recent mock exam scores.
-<img width="1424" height="743" alt="5" src="https://github.com/user-attachments/assets/daa0007d-8e85-4cb8-838c-35d91e3d4e91" />
 
 
 - **Dark Mode:** Fully responsive dark mode for late-night review sessions.
