@@ -87,8 +87,8 @@ You can easily wrap this web application into a native desktop application using
    ```
 
    _When prompted, answer the questions:_
-   - App name: `CBLE Tracker`
-   - Window title: `The Long Game`
+   - App name: `CBLEL Review Companion`
+   - Window title: `CBLEL Review Companion`
    - Web assets location: `../dist`
    - Dev server URL: `http://localhost:9326`
    - Dev command: `npm run dev`
