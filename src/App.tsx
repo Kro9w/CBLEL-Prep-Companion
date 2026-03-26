@@ -137,7 +137,7 @@ export function getDaysUntil(target: Date): number {
   return Math.ceil((t.getTime() - now.getTime()) / 86400000);
 }
 
-// ── checklist builder ─────────────────────────────────────────────────────────
+// ── checklist builder
 export type ChecklistItem = {
   id: string;
   label: string;

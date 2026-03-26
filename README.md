@@ -4,33 +4,31 @@ A daily routine, checklist, and Pomodoro app for the upcoming Computer Based Lic
 
 I hope this apps help you to keep you focused, disciplined, and on track.
 
-
 ---
 
 ## Features
+
 - **Customizable Onboarding:** Set your name, reorder the 6 CBLE subjects, and define your custom study cycle (e.g., 6 days per subject) and active study days.
-![1](https://github.com/user-attachments/assets/f040ae8d-82bb-4ee2-ae8d-a7ce3f45b6b6)
+  ![1](https://github.com/user-attachments/assets/f040ae8d-82bb-4ee2-ae8d-a7ce3f45b6b6)
 
 - **Dynamic Daily Checklist:** Automatically generates a daily routine based on your assigned subject for the week. The checklist is a _prescription_—you can freely remove items or add your own custom tasks to fit your actual day.
-![2](https://github.com/user-attachments/assets/a4f04a68-59ec-4897-8df2-12b79114b46d)
-
+  ![2](https://github.com/user-attachments/assets/a4f04a68-59ec-4897-8df2-12b79114b46d)
 
 - **Pomodoro Timer:** A built-in, floating 25/5 Pomodoro timer to help you maintain focus during study blocks.
-![3](https://github.com/user-attachments/assets/65873a74-9968-4404-bc0a-6131ad1fdce6)
-
+  ![3](https://github.com/user-attachments/assets/65873a74-9968-4404-bc0a-6131ad1fdce6)
 
 - **Mock Exams:** Take full timed exams or immediate-feedback sessions. Upload your own `.txt` question banks.
-![4](https://github.com/user-attachments/assets/3d5a0297-d9b5-4be0-98a5-5d29fb6c36e2)
-
+  ![4](https://github.com/user-attachments/assets/3d5a0297-d9b5-4be0-98a5-5d29fb6c36e2)
 
 - **Dashboard & Progress:** Track your study streak, days left until the exam, completion rates, and view a heat map of your recent mock exam scores.
-
+  <img width="1424" height="743" alt="5" src="https://github.com/user-attachments/assets/daa0007d-8e85-4cb8-838c-35d91e3d4e91" />
 
 - **Dark Mode:** Fully responsive dark mode for late-night review sessions.
-![6](https://github.com/user-attachments/assets/0fecd999-b068-4edd-b772-7117cae818a8)
-
+  ![6](https://github.com/user-attachments/assets/0fecd999-b068-4edd-b772-7117cae818a8)
 
 - **Persistent Storage:** All your progress, custom tasks, deleted prescribed tasks, and mock exam scores are saved securely to your browser's `localStorage`.
+
+## For Developers
 
 ---
 

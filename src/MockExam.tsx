@@ -86,7 +86,7 @@ function parseQuestions(raw: string): Question[] {
   return questions;
 }
 
-// ── storage helpers ───────────────────────────────────────────────────────────
+// ── storage helpers
 const EXAMS_KEY = "saved-exams";
 
 function scoreKey(date: Date) {
@@ -113,7 +113,7 @@ function appendSavedExam(exam: SavedExam) {
   } catch {}
 }
 
-// ── format helpers ────────────────────────────────────────────────────────────
+// ── format helpers
 function formatTime(secs: number): string {
   const m = Math.floor(secs / 60);
   const s = secs % 60;
@@ -159,9 +159,9 @@ function scoreLabel(pct: number): string {
         : "Review needed";
 }
 
-const EXAM_DURATION = 3600; // 1 hour in seconds
+const EXAM_DURATION = 3600;
 
-// ── progress bar ──────────────────────────────────────────────────────────────
+// ── progress bar
 function ProgressBar({ current, total }: { current: number; total: number }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -191,7 +191,7 @@ function ProgressBar({ current, total }: { current: number; total: number }) {
   );
 }
 
-// ── timer display ─────────────────────────────────────────────────────────────
+// ── timer display
 function TimerDisplay({ elapsed, limit }: { elapsed: number; limit: number }) {
   const remaining = limit - elapsed;
   const pct = elapsed / limit;
@@ -242,7 +242,7 @@ function TimerDisplay({ elapsed, limit }: { elapsed: number; limit: number }) {
   );
 }
 
-// ── wrong answer review block (shared by review + history) ───────────────────
+// ── wrong answer review block (shared by review + history)
 function WrongReview({ wrong }: { wrong: WrongItem[] }) {
   if (wrong.length === 0)
     return (
@@ -360,7 +360,7 @@ function WrongReview({ wrong }: { wrong: WrongItem[] }) {
   );
 }
 
-// ── previous exams view ───────────────────────────────────────────────────────
+// ── previous exams view
 function PreviousExams() {
   const [exams, setExams] = useState<SavedExam[]>(loadSavedExams);
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -634,7 +634,7 @@ function PreviousExams() {
   );
 }
 
-// ── main component ────────────────────────────────────────────────────────────
+// ── main component
 export default function MockExam() {
   const [view, setView] = useState<"exam" | "history">("exam");
   const [phase, setPhase] = useState<ExamPhase>("load");
@@ -676,7 +676,7 @@ export default function MockExam() {
       setElapsed((e) => {
         if (e + 1 >= EXAM_DURATION) {
           clearInterval(timerRef.current!);
-          // auto-finish via ref to avoid stale closure; we use a flag
+          // auto-finish via ref to avoid stale closure via a flag
           return EXAM_DURATION;
         }
         return e + 1;
@@ -698,7 +698,7 @@ export default function MockExam() {
     }
   }, [elapsed, phase]);
 
-  // ── file loading ──
+  // ── file loading
   function handleFile(file: File) {
     if (!file.name.endsWith(".txt")) {
       setParseError("Please upload a .txt file.");
@@ -733,7 +733,7 @@ export default function MockExam() {
     if (file) handleFile(file);
   }, []);
 
-  // ── exam logic ──
+  // ── exam logic
   function startExam() {
     setCurrent(0);
     setAnswers({});
@@ -762,7 +762,6 @@ export default function MockExam() {
   function finishExam(timeTaken: number) {
     stopTimer();
     // compute results using current answers state
-    // since this can be called from useEffect with stale answers, we capture via closure
     setAnswers((currentAnswers) => {
       const correct = questions.filter((q, i) => {
         const chosen = currentAnswers[i];
@@ -827,7 +826,7 @@ export default function MockExam() {
     setSaved(false);
   }
 
-  // ── computed ──
+  // ── computed
   const answeredCount = Object.keys(answers).length;
   const correctCount = questions.filter((q, i) => {
     const c = answers[i];
@@ -872,7 +871,7 @@ export default function MockExam() {
       ? (scorePercent / 100) * matchedSubject.weight
       : null;
 
-  // ── tab bar ──
+  // ── tab bar
   const tabBar = (
     <div
       style={{
@@ -905,7 +904,7 @@ export default function MockExam() {
     </div>
   );
 
-  // ── render: history ──
+  // ── render: history
   if (view === "history")
     return (
       <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
@@ -916,7 +915,7 @@ export default function MockExam() {
       </div>
     );
 
-  // ── render: load ──
+  // ── render: load
   if (phase === "load")
     return (
       <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
@@ -1079,7 +1078,7 @@ D. Country`}</pre>
       </div>
     );
 
-  // ── render: configure ──
+  // ── render: configure
   if (phase === "configure")
     return (
       <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
@@ -1255,7 +1254,7 @@ D. Country`}</pre>
       </div>
     );
 
-  // ── render: exam ──
+  // ── render: exam
   if (phase === "exam" && q) {
     const isLast = current === questions.length - 1;
     return (
@@ -1486,7 +1485,7 @@ D. Country`}</pre>
     );
   }
 
-  // ── render: review ──
+  // ── render: review
   if (phase === "review")
     return (
       <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>

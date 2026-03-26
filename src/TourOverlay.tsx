@@ -4,7 +4,6 @@ export default function TourOverlay({ onDismiss }: { onDismiss: () => void }) {
   const [step, setStep] = useState(1);
 
   useEffect(() => {
-    // Add overflow hidden to body while tour is active
     document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = "";
