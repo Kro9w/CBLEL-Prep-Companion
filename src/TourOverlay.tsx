@@ -44,10 +44,17 @@ export default function TourOverlay({ onDismiss }: { onDismiss: () => void }) {
       >
         {step === 1 && (
           <div>
-            <div style={{ fontSize: 24, marginBottom: 12 }}>🗺️</div>
             <div
               style={{
-                fontSize: 18,
+                fontSize: "calc(24px * var(--scale, 1))",
+                marginBottom: 12,
+              }}
+            >
+              🗺️
+            </div>
+            <div
+              style={{
+                fontSize: "calc(18px * var(--scale, 1))",
                 fontFamily: "var(--font-display)",
                 marginBottom: 8,
                 color: "var(--ink)",
@@ -57,7 +64,7 @@ export default function TourOverlay({ onDismiss }: { onDismiss: () => void }) {
             </div>
             <div
               style={{
-                fontSize: 14,
+                fontSize: "calc(14px * var(--scale, 1))",
                 color: "var(--ink-muted)",
                 marginBottom: 24,
                 lineHeight: 1.6,
@@ -72,10 +79,17 @@ export default function TourOverlay({ onDismiss }: { onDismiss: () => void }) {
 
         {step === 2 && (
           <div>
-            <div style={{ fontSize: 24, marginBottom: 12 }}>📊</div>
             <div
               style={{
-                fontSize: 18,
+                fontSize: "calc(24px * var(--scale, 1))",
+                marginBottom: 12,
+              }}
+            >
+              📊
+            </div>
+            <div
+              style={{
+                fontSize: "calc(18px * var(--scale, 1))",
                 fontFamily: "var(--font-display)",
                 marginBottom: 8,
                 color: "var(--ink)",
@@ -85,7 +99,7 @@ export default function TourOverlay({ onDismiss }: { onDismiss: () => void }) {
             </div>
             <div
               style={{
-                fontSize: 14,
+                fontSize: "calc(14px * var(--scale, 1))",
                 color: "var(--ink-muted)",
                 marginBottom: 24,
                 lineHeight: 1.6,
@@ -100,10 +114,17 @@ export default function TourOverlay({ onDismiss }: { onDismiss: () => void }) {
 
         {step === 3 && (
           <div>
-            <div style={{ fontSize: 24, marginBottom: 12 }}>✅</div>
             <div
               style={{
-                fontSize: 18,
+                fontSize: "calc(24px * var(--scale, 1))",
+                marginBottom: 12,
+              }}
+            >
+              ✅
+            </div>
+            <div
+              style={{
+                fontSize: "calc(18px * var(--scale, 1))",
                 fontFamily: "var(--font-display)",
                 marginBottom: 8,
                 color: "var(--ink)",
@@ -113,7 +134,7 @@ export default function TourOverlay({ onDismiss }: { onDismiss: () => void }) {
             </div>
             <div
               style={{
-                fontSize: 14,
+                fontSize: "calc(14px * var(--scale, 1))",
                 color: "var(--ink-muted)",
                 marginBottom: 24,
                 lineHeight: 1.6,
@@ -129,10 +150,17 @@ export default function TourOverlay({ onDismiss }: { onDismiss: () => void }) {
 
         {step === 4 && (
           <div>
-            <div style={{ fontSize: 24, marginBottom: 12 }}>📝</div>
             <div
               style={{
-                fontSize: 18,
+                fontSize: "calc(24px * var(--scale, 1))",
+                marginBottom: 12,
+              }}
+            >
+              📝
+            </div>
+            <div
+              style={{
+                fontSize: "calc(18px * var(--scale, 1))",
                 fontFamily: "var(--font-display)",
                 marginBottom: 8,
                 color: "var(--ink)",
@@ -142,7 +170,7 @@ export default function TourOverlay({ onDismiss }: { onDismiss: () => void }) {
             </div>
             <div
               style={{
-                fontSize: 14,
+                fontSize: "calc(14px * var(--scale, 1))",
                 color: "var(--ink-muted)",
                 marginBottom: 24,
                 lineHeight: 1.6,
@@ -156,7 +184,7 @@ export default function TourOverlay({ onDismiss }: { onDismiss: () => void }) {
                   background: "var(--cream-dark)",
                   padding: "2px 4px",
                   borderRadius: 3,
-                  fontSize: 12,
+                  fontSize: "calc(12px * var(--scale, 1))",
                 }}
               >
                 *A. Correct Answer
@@ -199,7 +227,7 @@ export default function TourOverlay({ onDismiss }: { onDismiss: () => void }) {
               style={{
                 flex: 1,
                 padding: "10px",
-                fontSize: 14,
+                fontSize: "calc(14px * var(--scale, 1))",
                 fontWeight: 500,
                 borderRadius: "var(--radius-sm)",
                 border: "1px solid var(--cream-border)",
@@ -217,7 +245,7 @@ export default function TourOverlay({ onDismiss }: { onDismiss: () => void }) {
             style={{
               flex: 2,
               padding: "10px",
-              fontSize: 14,
+              fontSize: "calc(14px * var(--scale, 1))",
               fontWeight: 500,
               borderRadius: "var(--radius-sm)",
               border: "none",

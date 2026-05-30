@@ -68,14 +68,19 @@ export default function Onboarding({
           <div
             style={{
               fontFamily: "var(--font-display)",
-              fontSize: 32,
+              fontSize: "calc(32px * var(--scale, 1))",
               lineHeight: 1.1,
               marginBottom: 8,
             }}
           >
             CBLEL Review Companion
           </div>
-          <div style={{ fontSize: 14, color: "var(--ink-muted)" }}>
+          <div
+            style={{
+              fontSize: "calc(14px * var(--scale, 1))",
+              color: "var(--ink-muted)",
+            }}
+          >
             The Licensed Librarian Roadmap
           </div>
         </div>
@@ -91,7 +96,7 @@ export default function Onboarding({
           >
             <div
               style={{
-                fontSize: 15,
+                fontSize: "calc(15px * var(--scale, 1))",
                 fontWeight: 500,
                 marginBottom: 16,
                 textAlign: "center",
@@ -108,7 +113,7 @@ export default function Onboarding({
               style={{
                 width: "100%",
                 padding: "12px 16px",
-                fontSize: 16,
+                fontSize: "calc(16px * var(--scale, 1))",
                 borderRadius: "var(--radius-sm)",
                 border: "1px solid var(--cream-border)",
                 background: "var(--cream)",
@@ -124,7 +129,7 @@ export default function Onboarding({
               style={{
                 width: "100%",
                 padding: "12px",
-                fontSize: 15,
+                fontSize: "calc(15px * var(--scale, 1))",
                 fontWeight: 500,
                 borderRadius: "var(--radius-sm)",
                 border: "none",
@@ -149,12 +154,18 @@ export default function Onboarding({
               border: "1px solid var(--cream-border)",
             }}
           >
-            <div style={{ fontSize: 16, fontWeight: 500, marginBottom: 8 }}>
+            <div
+              style={{
+                fontSize: "calc(16px * var(--scale, 1))",
+                fontWeight: 500,
+                marginBottom: 8,
+              }}
+            >
               Subject Rotation
             </div>
             <div
               style={{
-                fontSize: 13,
+                fontSize: "calc(13px * var(--scale, 1))",
                 color: "var(--ink-muted)",
                 marginBottom: 20,
               }}
@@ -194,7 +205,7 @@ export default function Onboarding({
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      fontSize: 12,
+                      fontSize: "calc(12px * var(--scale, 1))",
                       fontWeight: 500,
                       flexShrink: 0,
                     }}
@@ -204,7 +215,7 @@ export default function Onboarding({
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div
                       style={{
-                        fontSize: 13,
+                        fontSize: "calc(13px * var(--scale, 1))",
                         fontWeight: 500,
                         whiteSpace: "nowrap",
                         overflow: "hidden",
@@ -259,7 +270,7 @@ export default function Onboarding({
                 style={{
                   flex: 1,
                   padding: "12px",
-                  fontSize: 15,
+                  fontSize: "calc(15px * var(--scale, 1))",
                   fontWeight: 500,
                   borderRadius: "var(--radius-sm)",
                   border: "1px solid var(--cream-border)",
@@ -276,7 +287,7 @@ export default function Onboarding({
                 style={{
                   flex: 2,
                   padding: "12px",
-                  fontSize: 15,
+                  fontSize: "calc(15px * var(--scale, 1))",
                   fontWeight: 500,
                   borderRadius: "var(--radius-sm)",
                   border: "none",
@@ -301,12 +312,18 @@ export default function Onboarding({
               border: "1px solid var(--cream-border)",
             }}
           >
-            <div style={{ fontSize: 16, fontWeight: 500, marginBottom: 8 }}>
+            <div
+              style={{
+                fontSize: "calc(16px * var(--scale, 1))",
+                fontWeight: 500,
+                marginBottom: 8,
+              }}
+            >
               Schedule & Cycle
             </div>
             <div
               style={{
-                fontSize: 13,
+                fontSize: "calc(13px * var(--scale, 1))",
                 color: "var(--ink-muted)",
                 marginBottom: 20,
               }}
@@ -320,7 +337,7 @@ export default function Onboarding({
             <div style={{ marginBottom: 20 }}>
               <div
                 style={{
-                  fontSize: 13,
+                  fontSize: "calc(13px * var(--scale, 1))",
                   fontWeight: 500,
                   color: "var(--ink)",
                   marginBottom: 8,
@@ -337,7 +354,7 @@ export default function Onboarding({
                       onClick={() => toggleDay(i)}
                       style={{
                         padding: "6px 10px",
-                        fontSize: 12,
+                        fontSize: "calc(12px * var(--scale, 1))",
                         fontWeight: 500,
                         borderRadius: "var(--radius-sm)",
                         border: active
@@ -359,7 +376,7 @@ export default function Onboarding({
             <div style={{ marginBottom: 24 }}>
               <div
                 style={{
-                  fontSize: 13,
+                  fontSize: "calc(13px * var(--scale, 1))",
                   fontWeight: 500,
                   color: "var(--ink)",
                   marginBottom: 8,
@@ -379,7 +396,7 @@ export default function Onboarding({
                   style={{
                     width: 80,
                     padding: "10px",
-                    fontSize: 14,
+                    fontSize: "calc(14px * var(--scale, 1))",
                     borderRadius: "var(--radius-sm)",
                     border: "1px solid var(--cream-border)",
                     background: "var(--cream)",
@@ -388,7 +405,12 @@ export default function Onboarding({
                     outline: "none",
                   }}
                 />
-                <span style={{ fontSize: 13, color: "var(--ink-muted)" }}>
+                <span
+                  style={{
+                    fontSize: "calc(13px * var(--scale, 1))",
+                    color: "var(--ink-muted)",
+                  }}
+                >
                   days
                 </span>
               </div>
@@ -400,7 +422,7 @@ export default function Onboarding({
                 style={{
                   flex: 1,
                   padding: "12px",
-                  fontSize: 15,
+                  fontSize: "calc(15px * var(--scale, 1))",
                   fontWeight: 500,
                   borderRadius: "var(--radius-sm)",
                   border: "1px solid var(--cream-border)",
@@ -417,7 +439,7 @@ export default function Onboarding({
                 style={{
                   flex: 2,
                   padding: "12px",
-                  fontSize: 15,
+                  fontSize: "calc(15px * var(--scale, 1))",
                   fontWeight: 500,
                   borderRadius: "var(--radius-sm)",
                   border: "none",

@@ -1,61 +1,96 @@
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
 
-:root, [data-theme="light"] {
-  --cream:        #F5F1EA;
-  --cream-dark:   #EDE8DF;
-  --cream-border: #DDD7CC;
-  --ink:          #1C1A17;
-  --ink-muted:    #6B6558;
-  --ink-faint:    #A09890;
-  --accent:       #8B6F47;
-  --accent-light: #C4A882;
-  --accent-bg:    #F0E9DE;
-  --green:        #3D6B4F;
-  --green-bg:     #E8F0EB;
-  --red:          #8B3A3A;
-  --red-bg:       #F5E8E8;
-  --blue:         #2C4A7C;
-  --blue-bg:      #E8EDF5;
-  --font-display: 'Instrument Serif', Georgia, serif;
-  --font-body:    'DM Sans', system-ui, sans-serif;
-  --font-mono:    'JetBrains Mono', 'Fira Code', monospace;
-  --radius:       10px;
-  --radius-sm:    6px;
+:root,
+[data-theme="light"] {
+  --cream: #f5f1ea;
+  --cream-dark: #ede8df;
+  --cream-border: #ddd7cc;
+  --ink: #1c1a17;
+  --ink-muted: #6b6558;
+  --ink-faint: #a09890;
+  --accent: #8b6f47;
+  --accent-light: #c4a882;
+  --accent-bg: #f0e9de;
+  --green: #3d6b4f;
+  --green-bg: #e8f0eb;
+  --red: #8b3a3a;
+  --red-bg: #f5e8e8;
+  --blue: #2c4a7c;
+  --blue-bg: #e8edf5;
+  --font-display: "Instrument Serif", Georgia, serif;
+  --font-body: "DM Sans", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", monospace;
+  --radius: 10px;
+  --radius-sm: 6px;
+}
+
+[data-font-style="simple"] {
+  --font-display: "Fraunces", Georgia, serif;
+  --font-body: "DM Sans", system-ui, sans-serif;
+}
+
+[data-font-size="S"] {
+  --scale: 0.92;
+}
+[data-font-size="M"] {
+  --scale: 1;
+}
+[data-font-size="L"] {
+  --scale: 1.15;
 }
 
 [data-theme="dark"] {
-  --cream:        #1A1814;
-  --cream-dark:   #22201B;
-  --cream-border: #36322A;
-  --ink:          #EDE8DF;
-  --ink-muted:    #A09880;
-  --ink-faint:    #6B6558;
-  --accent:       #C4A882;
-  --accent-light: #8B6F47;
-  --accent-bg:    #2A2318;
-  --green:        #6BAF85;
-  --green-bg:     #1A2E22;
-  --red:          #C47878;
-  --red-bg:       #2E1A1A;
-  --blue:         #7A9FCC;
-  --blue-bg:      #1A2340;
+  --cream: #1a1814;
+  --cream-dark: #22201b;
+  --cream-border: #36322a;
+  --ink: #ede8df;
+  --ink-muted: #a09880;
+  --ink-faint: #6b6558;
+  --accent: #c4a882;
+  --accent-light: #8b6f47;
+  --accent-bg: #2a2318;
+  --green: #6baf85;
+  --green-bg: #1a2e22;
+  --red: #c47878;
+  --red-bg: #2e1a1a;
+  --blue: #7a9fcc;
+  --blue-bg: #1a2340;
 }
 
-html, body, #root { height: 100%; width: 100%; }
+html,
+body,
+#root {
+  height: 100%;
+  width: 100%;
+}
 
 body {
   font-family: var(--font-body);
   background: var(--cream);
   color: var(--ink);
-  font-size: 14px;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
-  transition: background 0.2s, color 0.2s;
+  transition:
+    background 0.2s,
+    color 0.2s;
 }
 
-::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--cream-border); border-radius: 2px; }
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--cream-border);
+  border-radius: 2px;
+}
 
 input[type="date"]::-webkit-calendar-picker-indicator {
   filter: var(--ink) brightness(0.5);

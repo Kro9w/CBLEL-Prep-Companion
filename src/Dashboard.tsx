@@ -162,22 +162,9 @@ function isDayCompleted(
   studyDays: number[],
 ): boolean {
   if (isRestDay(d, studyDays)) return true;
-  const deletedTasks: string[] = loadJSON(deletedKey(d), []);
-  const builtIds = buildChecklist(
-    d,
-    startDateStr,
-    subjects,
-    cycleLength,
-    studyDays,
-  )
-    .map((i) => i.id)
-    .filter((id) => !deletedTasks.includes(id));
-  const customTasks: { id: string }[] = loadJSON(customKey(d), []);
-  const allIds = [...builtIds, ...customTasks.map((t) => t.id)];
-  if (allIds.length === 0) return false;
-  const checks = loadJSON<Record<string, boolean>>(checksKey(d), {});
-  const doneCount = allIds.filter((id) => checks[id]).length;
-  return doneCount / allIds.length >= 0.5;
+  // A day is considered complete if there is an exam score logged for it
+  const score = loadJSON<number | null>(scoreKey(d), null);
+  return score !== null;
 }
 
 function computeStreak(
@@ -223,25 +210,11 @@ function computeStudyStats(
   while (d <= today) {
     if (!isRestDay(d, studyDays)) {
       total++;
-      // 50% threshold for streak/completed count
-      if (isDayCompleted(d, startDateStr, subjects, cycleLength, studyDays))
+      // Using exam completion for both now
+      if (isDayCompleted(d, startDateStr, subjects, cycleLength, studyDays)) {
         completed++;
-      // actual 100% for rate display
-      const deletedTasks: string[] = loadJSON(deletedKey(d), []);
-      const builtIds = buildChecklist(
-        d,
-        startDateStr,
-        subjects,
-        cycleLength,
-        studyDays,
-      )
-        .map((i) => i.id)
-        .filter((id) => !deletedTasks.includes(id));
-      const customTasks: { id: string }[] = loadJSON(customKey(d), []);
-      const allIds = [...builtIds, ...customTasks.map((t) => t.id)];
-      const checks = loadJSON<Record<string, boolean>>(checksKey(d), {});
-      const doneCount = allIds.filter((id) => checks[id]).length;
-      if (allIds.length > 0 && doneCount === allIds.length) actualCompleted++;
+        actualCompleted++;
+      }
     }
     d.setDate(d.getDate() + 1);
   }
@@ -310,7 +283,7 @@ function StatCard({
     >
       <div
         style={{
-          fontSize: 11,
+          fontSize: "calc(11px * var(--scale, 1))",
           color: "var(--ink-faint)",
           fontWeight: 500,
           textTransform: "uppercase",
@@ -322,7 +295,7 @@ function StatCard({
       <div
         style={{
           fontFamily: "var(--font-display)",
-          fontSize: 28,
+          fontSize: "calc(28px * var(--scale, 1))",
           color: color || "var(--ink)",
           lineHeight: 1.1,
         }}
@@ -330,7 +303,14 @@ function StatCard({
         {value}
       </div>
       {sub && (
-        <div style={{ fontSize: 11, color: "var(--ink-muted)" }}>{sub}</div>
+        <div
+          style={{
+            fontSize: "calc(11px * var(--scale, 1))",
+            color: "var(--ink-muted)",
+          }}
+        >
+          {sub}
+        </div>
       )}
     </div>
   );
@@ -353,7 +333,7 @@ function MiniLineChart({
       >
         <span
           style={{
-            fontSize: 12,
+            fontSize: "calc(12px * var(--scale, 1))",
             color: "var(--ink-faint)",
             fontStyle: "italic",
           }}
@@ -474,7 +454,7 @@ function MiniLineChart({
       </svg>
       <div
         style={{
-          fontSize: 11,
+          fontSize: "calc(11px * var(--scale, 1))",
           color: "var(--ink-faint)",
           marginTop: 4,
           textAlign: "right",
@@ -553,7 +533,7 @@ function WeeklyOverview({
           >
             <div
               style={{
-                fontSize: 10,
+                fontSize: "calc(10px * var(--scale, 1))",
                 fontWeight: 500,
                 color: isToday ? "var(--accent)" : "var(--ink-faint)",
                 marginBottom: 2,
@@ -563,7 +543,7 @@ function WeeklyOverview({
             </div>
             <div
               style={{
-                fontSize: 12,
+                fontSize: "calc(12px * var(--scale, 1))",
                 fontWeight: 500,
                 color: "var(--ink)",
                 marginBottom: 6,
@@ -574,7 +554,7 @@ function WeeklyOverview({
             {rest ? (
               <div
                 style={{
-                  fontSize: 9,
+                  fontSize: "calc(9px * var(--scale, 1))",
                   color: "var(--ink-faint)",
                   fontStyle: "italic",
                 }}
@@ -585,7 +565,7 @@ function WeeklyOverview({
               <>
                 <div
                   style={{
-                    fontSize: 9,
+                    fontSize: "calc(9px * var(--scale, 1))",
                     padding: "1px 4px",
                     borderRadius: 3,
                     marginBottom: 3,
@@ -598,7 +578,7 @@ function WeeklyOverview({
                 {score !== null && (
                   <div
                     style={{
-                      fontSize: 9,
+                      fontSize: "calc(9px * var(--scale, 1))",
                       padding: "1px 4px",
                       borderRadius: 3,
                       marginBottom: 3,
@@ -760,7 +740,7 @@ export default function Dashboard({
         <div
           style={{
             fontFamily: "var(--font-display)",
-            fontSize: 15,
+            fontSize: "calc(15px * var(--scale, 1))",
             color: "var(--ink)",
             lineHeight: 1.6,
             fontStyle: "italic",
@@ -771,7 +751,7 @@ export default function Dashboard({
         </div>
         <div
           style={{
-            fontSize: 11,
+            fontSize: "calc(11px * var(--scale, 1))",
             fontWeight: 500,
             color: "var(--accent)",
             letterSpacing: "0.04em",
@@ -803,7 +783,7 @@ export default function Dashboard({
         <StatCard
           label="Study streak"
           value={`${streak}d`}
-          sub={streak > 0 ? "Keep going!" : "Complete ≥50% today"}
+          sub={streak > 0 ? "Keep going!" : "Take an exam today"}
           color={streak >= 5 ? "var(--green)" : "var(--ink)"}
         />
         <StatCard
@@ -840,11 +820,20 @@ export default function Dashboard({
             marginBottom: 8,
           }}
         >
-          <span style={{ fontSize: 13, fontWeight: 500, color: "var(--ink)" }}>
+          <span
+            style={{
+              fontSize: "calc(13px * var(--scale, 1))",
+              fontWeight: 500,
+              color: "var(--ink)",
+            }}
+          >
             {userName}'s journey to board exam
           </span>
           <span
-            style={{ fontSize: 12, color: "var(--ink-muted)" }}
+            style={{
+              fontSize: "calc(12px * var(--scale, 1))",
+              color: "var(--ink-muted)",
+            }}
           >{`Studying: ${currentSubject}`}</span>
         </div>
         <div
@@ -873,7 +862,12 @@ export default function Dashboard({
             marginTop: 6,
           }}
         >
-          <span style={{ fontSize: 10, color: "var(--ink-faint)" }}>
+          <span
+            style={{
+              fontSize: "calc(10px * var(--scale, 1))",
+              color: "var(--ink-faint)",
+            }}
+          >
             {startDate.toLocaleDateString("en-PH", {
               month: "short",
               day: "numeric",
@@ -881,11 +875,20 @@ export default function Dashboard({
             })}
           </span>
           <span
-            style={{ fontSize: 10, fontWeight: 500, color: "var(--accent)" }}
+            style={{
+              fontSize: "calc(10px * var(--scale, 1))",
+              fontWeight: 500,
+              color: "var(--accent)",
+            }}
           >
             {Math.round(studyProgress * 100)}% through prep
           </span>
-          <span style={{ fontSize: 10, color: "var(--ink-faint)" }}>
+          <span
+            style={{
+              fontSize: "calc(10px * var(--scale, 1))",
+              color: "var(--ink-faint)",
+            }}
+          >
             {examDate.toLocaleDateString("en-PH", {
               month: "short",
               day: "numeric",
@@ -906,7 +909,7 @@ export default function Dashboard({
       >
         <div
           style={{
-            fontSize: 13,
+            fontSize: "calc(13px * var(--scale, 1))",
             fontWeight: 500,
             color: "var(--ink)",
             marginBottom: 12,
@@ -936,7 +939,7 @@ export default function Dashboard({
               >
                 <div
                   style={{
-                    fontSize: 11,
+                    fontSize: "calc(11px * var(--scale, 1))",
                     fontWeight: 500,
                     color: done ? "var(--ink-faint)" : m.color,
                     marginBottom: 4,
@@ -947,7 +950,7 @@ export default function Dashboard({
                 <div
                   style={{
                     fontFamily: "var(--font-display)",
-                    fontSize: 20,
+                    fontSize: "calc(20px * var(--scale, 1))",
                     color: done ? "var(--ink-faint)" : m.color,
                   }}
                 >
@@ -955,7 +958,7 @@ export default function Dashboard({
                 </div>
                 <div
                   style={{
-                    fontSize: 10,
+                    fontSize: "calc(10px * var(--scale, 1))",
                     color: done ? "var(--ink-faint)" : m.color,
                     marginTop: 2,
                     opacity: 0.8,
@@ -989,7 +992,13 @@ export default function Dashboard({
             marginBottom: 12,
           }}
         >
-          <span style={{ fontSize: 13, fontWeight: 500, color: "var(--ink)" }}>
+          <span
+            style={{
+              fontSize: "calc(13px * var(--scale, 1))",
+              fontWeight: 500,
+              color: "var(--ink)",
+            }}
+          >
             {weekOffset === 0
               ? "This week"
               : weekOffset === -1
@@ -1008,7 +1017,10 @@ export default function Dashboard({
             {weekOffset !== 0 && (
               <button
                 onClick={() => setWeekOffset(0)}
-                style={{ ...smallBtn, fontSize: 10 }}
+                style={{
+                  ...smallBtn,
+                  fontSize: "calc(10px * var(--scale, 1))",
+                }}
               >
                 Today
               </button>
@@ -1061,7 +1073,12 @@ export default function Dashboard({
                   border: `1px solid ${l.color}`,
                 }}
               />
-              <span style={{ fontSize: 10, color: "var(--ink-faint)" }}>
+              <span
+                style={{
+                  fontSize: "calc(10px * var(--scale, 1))",
+                  color: "var(--ink-faint)",
+                }}
+              >
                 {l.label}
               </span>
             </div>
@@ -1086,7 +1103,13 @@ export default function Dashboard({
             marginBottom: 12,
           }}
         >
-          <span style={{ fontSize: 13, fontWeight: 500, color: "var(--ink)" }}>
+          <span
+            style={{
+              fontSize: "calc(13px * var(--scale, 1))",
+              fontWeight: 500,
+              color: "var(--ink)",
+            }}
+          >
             Mock exam scores — last 30 days
           </span>
           {scores.length > 0 && (
@@ -1096,12 +1119,17 @@ export default function Dashboard({
                 { label: "Best", value: bestScore },
               ].map((s) => (
                 <div key={s.label} style={{ textAlign: "right" }}>
-                  <div style={{ fontSize: 10, color: "var(--ink-faint)" }}>
+                  <div
+                    style={{
+                      fontSize: "calc(10px * var(--scale, 1))",
+                      color: "var(--ink-faint)",
+                    }}
+                  >
                     {s.label}
                   </div>
                   <div
                     style={{
-                      fontSize: 14,
+                      fontSize: "calc(14px * var(--scale, 1))",
                       fontWeight: 500,
                       color: "var(--ink)",
                     }}
@@ -1150,10 +1178,22 @@ export default function Dashboard({
                 flex: 1,
               }}
             >
-              <div style={{ fontSize: 10, fontWeight: 500, color: b.color }}>
+              <div
+                style={{
+                  fontSize: "calc(10px * var(--scale, 1))",
+                  fontWeight: 500,
+                  color: b.color,
+                }}
+              >
                 {b.label}
               </div>
-              <div style={{ fontSize: 9, color: b.color, opacity: 0.8 }}>
+              <div
+                style={{
+                  fontSize: "calc(9px * var(--scale, 1))",
+                  color: b.color,
+                  opacity: 0.8,
+                }}
+              >
                 {b.note}
               </div>
             </div>
@@ -1173,7 +1213,7 @@ export default function Dashboard({
       >
         <div
           style={{
-            fontSize: 13,
+            fontSize: "calc(13px * var(--scale, 1))",
             fontWeight: 500,
             color: "var(--ink)",
             marginBottom: 12,
@@ -1217,7 +1257,7 @@ export default function Dashboard({
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    fontSize: 10,
+                    fontSize: "calc(10px * var(--scale, 1))",
                     fontWeight: 500,
                     color: isCurrent ? "white" : "var(--ink-muted)",
                   }}
@@ -1227,7 +1267,7 @@ export default function Dashboard({
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div
                     style={{
-                      fontSize: 12,
+                      fontSize: "calc(12px * var(--scale, 1))",
                       fontWeight: isCurrent ? 500 : 400,
                       color: "var(--ink)",
                       whiteSpace: "nowrap",
@@ -1237,14 +1277,19 @@ export default function Dashboard({
                   >
                     {s.name}
                   </div>
-                  <div style={{ fontSize: 10, color: "var(--ink-faint)" }}>
+                  <div
+                    style={{
+                      fontSize: "calc(10px * var(--scale, 1))",
+                      color: "var(--ink-faint)",
+                    }}
+                  >
                     {s.short} · {s.weight}% LLE Weight
                   </div>
                 </div>
                 {isCurrent && (
                   <span
                     style={{
-                      fontSize: 10,
+                      fontSize: "calc(10px * var(--scale, 1))",
                       padding: "2px 8px",
                       borderRadius: 3,
                       background: "var(--accent)",
@@ -1272,7 +1317,7 @@ const smallBtn: React.CSSProperties = {
   border: "1px solid var(--cream-border)",
   background: "var(--cream)",
   cursor: "pointer",
-  fontSize: 12,
+  fontSize: "calc(12px * var(--scale, 1))",
   color: "var(--ink-muted)",
   display: "flex",
   alignItems: "center",

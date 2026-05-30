@@ -147,106 +147,9 @@ export type ChecklistItem = {
   custom?: boolean;
 };
 
-export const DEFAULT_REST_TEMPLATE: ChecklistItem[] = [
-  { id: "rest-sleep", label: "Sleep in — no alarm", tag: "rest" },
-  {
-    id: "rest-leisure",
-    label: "Leisure, errands, or social time",
-    tag: "leisure",
-  },
-  {
-    id: "rest-journal",
-    label: "Journal or read for pleasure",
-    tag: "leisure",
-  },
-  {
-    id: "rest-prep",
-    label: "Light prep for tomorrow (5–10 min)",
-    note: "Set out materials, check tomorrow's subject",
-    tag: "rest",
-  },
-];
+export const DEFAULT_REST_TEMPLATE: ChecklistItem[] = [];
 
-export const DEFAULT_STUDY_TEMPLATE: ChecklistItem[] = [
-  {
-    id: "wake",
-    label: "Wake up & morning prep",
-    time: "5:30 AM",
-    tag: "rest",
-  },
-  {
-    id: "review1",
-    label: "Deep review", // will be dynamically updated
-    time: "6:00 – 8:30 AM",
-    note: "Theory, notes, active recall, spaced repetition",
-    tag: "study",
-  },
-  {
-    id: "mock",
-    label: "Mock exam — 100 items (timed)",
-    time: "8:30 – 10:00 AM",
-    note: "Full timed exam + thorough error review",
-    tag: "mock",
-  },
-  {
-    id: "break1",
-    label: "Break & snack",
-    time: "10:00 – 10:30 AM",
-    tag: "rest",
-  },
-  {
-    id: "review2",
-    label: "Second review block",
-    time: "10:30 AM – 12:30 PM",
-    note: "Revisit weak areas from mock exam",
-    tag: "study",
-  },
-  {
-    id: "lunch",
-    label: "Lunch & optional nap",
-    time: "12:30 – 1:30 PM",
-    tag: "rest",
-  },
-  {
-    id: "review3",
-    label: "Third review block",
-    time: "1:30 – 4:00 PM",
-    note: "Cross-subject recall, notes consolidation, flashcards",
-    tag: "study",
-  },
-  {
-    id: "break2",
-    label: "Break & walk",
-    time: "4:00 – 4:30 PM",
-    tag: "rest",
-  },
-  {
-    id: "review-eve",
-    label: "Evening review",
-    time: "4:30 – 6:00 PM",
-    tag: "study",
-  },
-  {
-    id: "dinner",
-    label: "Dinner & decompress",
-    time: "6:30 – 7:30 PM",
-    tag: "rest",
-  },
-  {
-    id: "leisure",
-    label: "Reading / journaling",
-    time: "7:30 – 9:00 PM",
-    note: "Non-negotiable leisure. Burnout protection.",
-    tag: "leisure",
-  },
-  {
-    id: "winddown",
-    label: "Light review or wind down — lights out by 10",
-    time: "9:00 – 10:00 PM",
-    note: "Scan notes or do nothing. Both are fine.",
-    tag: "rest",
-  },
-];
+export const DEFAULT_STUDY_TEMPLATE: ChecklistItem[] = [];
 
 export function buildChecklist(
   date: Date,
@@ -347,7 +250,7 @@ export default function App() {
   const [viewDate, setViewDate] = useState(() => new Date());
   const [checks, setChecks] = useState<Record<string, boolean>>({});
   const [activeTab, setActiveTab] = useState<
-    "dashboard" | "exam" | "checklist" | "milestones" | "subjects"
+    "dashboard" | "practice" | "checklist" | "milestones" | "subjects"
   >("dashboard");
   const [darkMode, setDarkMode] = useState(() => {
     try {
@@ -356,6 +259,22 @@ export default function App() {
       return false;
     }
   });
+  const [simpleFont, setSimpleFont] = useState(() => {
+    try {
+      return localStorage.getItem("simpleFont") === "true";
+    } catch {
+      return false;
+    }
+  });
+  const [fontSize, setFontSize] = useState<"S" | "M" | "L">(() => {
+    try {
+      const saved = localStorage.getItem("fontSize");
+      return saved === "S" || saved === "M" || saved === "L" ? saved : "M";
+    } catch {
+      return "M";
+    }
+  });
+  const [showSettings, setShowSettings] = useState(false);
   const [milestones, setMilestones] = useState<MilestoneData[]>(loadMilestones);
   const [editingMilestone, setEditingMilestone] = useState<string | null>(null);
   const [customTasks, setCustomTasks] = useState<ChecklistItem[]>([]);
@@ -390,6 +309,23 @@ export default function App() {
       localStorage.setItem("darkMode", String(darkMode));
     } catch {}
   }, [darkMode]);
+
+  useEffect(() => {
+    document.documentElement.setAttribute(
+      "data-font-style",
+      simpleFont ? "simple" : "serif",
+    );
+    try {
+      localStorage.setItem("simpleFont", String(simpleFont));
+    } catch {}
+  }, [simpleFont]);
+
+  useEffect(() => {
+    document.documentElement.setAttribute("data-font-size", fontSize);
+    try {
+      localStorage.setItem("fontSize", fontSize);
+    } catch {}
+  }, [fontSize]);
 
   useEffect(() => {
     try {
@@ -588,7 +524,7 @@ export default function App() {
           <div
             style={{
               fontFamily: "var(--font-display)",
-              fontSize: 22,
+              fontSize: "calc(22px * var(--scale, 1))",
               color: "var(--ink)",
               lineHeight: 1.2,
             }}
@@ -596,7 +532,11 @@ export default function App() {
             {userName}'s Boards
           </div>
           <div
-            style={{ fontSize: 12, color: "var(--ink-faint)", marginTop: 2 }}
+            style={{
+              fontSize: "calc(12px * var(--scale, 1))",
+              color: "var(--ink-faint)",
+              marginTop: 2,
+            }}
           >
             CBLEL {examDate.getFullYear()} · The Licensed Librarian Roadmap
           </div>
@@ -605,7 +545,7 @@ export default function App() {
           {!restDay && (
             <span
               style={{
-                fontSize: 11,
+                fontSize: "calc(11px * var(--scale, 1))",
                 fontWeight: 500,
                 padding: "2px 8px",
                 background: "var(--accent-bg)",
@@ -619,7 +559,7 @@ export default function App() {
           {restDay && (
             <span
               style={{
-                fontSize: 11,
+                fontSize: "calc(11px * var(--scale, 1))",
                 fontWeight: 500,
                 padding: "2px 8px",
                 background: "var(--cream-dark)",
@@ -630,30 +570,199 @@ export default function App() {
               Rest day
             </span>
           )}
-          <button
-            onClick={() => setDarkMode((d) => !d)}
-            title="Toggle dark mode"
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: "var(--radius-sm)",
-              border: "1px solid var(--cream-border)",
-              background: "var(--cream-dark)",
-              cursor: "pointer",
-              fontSize: 15,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "var(--ink-muted)",
-            }}
-          >
-            {darkMode ? "☀" : "☽"}
-          </button>
+          <div style={{ position: "relative" }}>
+            <button
+              onClick={() => setShowSettings((s) => !s)}
+              title="Settings"
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: "var(--radius-sm)",
+                border: "1px solid var(--cream-border)",
+                background: showSettings
+                  ? "var(--cream-border)"
+                  : "var(--cream-dark)",
+                cursor: "pointer",
+                fontSize: "calc(15px * var(--scale, 1))",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "var(--ink-muted)",
+                transition: "background 0.15s",
+              }}
+            >
+              ⚙
+            </button>
+            {showSettings && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: "100%",
+                  right: 0,
+                  marginTop: 8,
+                  width: 220,
+                  background: "var(--cream)",
+                  border: "1px solid var(--cream-border)",
+                  borderRadius: "var(--radius)",
+                  boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+                  padding: "16px",
+                  zIndex: 1000,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 16,
+                }}
+              >
+                {/* Theme Toggle */}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: "calc(13px * var(--scale, 1))",
+                      fontWeight: 500,
+                      color: "var(--ink)",
+                    }}
+                  >
+                    Dark Mode
+                  </span>
+                  <button
+                    onClick={() => setDarkMode(!darkMode)}
+                    style={{
+                      width: 40,
+                      height: 22,
+                      borderRadius: 12,
+                      background: darkMode
+                        ? "var(--accent)"
+                        : "var(--cream-dark)",
+                      border: "1px solid var(--cream-border)",
+                      position: "relative",
+                      cursor: "pointer",
+                      transition: "background 0.2s",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 16,
+                        height: 16,
+                        borderRadius: "50%",
+                        background: darkMode
+                          ? "var(--cream)"
+                          : "var(--ink-muted)",
+                        position: "absolute",
+                        top: 2,
+                        left: darkMode ? 20 : 2,
+                        transition: "left 0.2s",
+                      }}
+                    />
+                  </button>
+                </div>
+
+                {/* Font Style */}
+                <div>
+                  <div
+                    style={{
+                      fontSize: "calc(12px * var(--scale, 1))",
+                      color: "var(--ink-muted)",
+                      marginBottom: 6,
+                    }}
+                  >
+                    Font Style
+                  </div>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <button
+                      onClick={() => setSimpleFont(false)}
+                      style={{
+                        flex: 1,
+                        padding: "6px",
+                        fontSize: "calc(12px * var(--scale, 1))",
+                        borderRadius: "var(--radius-sm)",
+                        border: "1px solid var(--cream-border)",
+                        background: !simpleFont
+                          ? "var(--accent-bg)"
+                          : "var(--cream-dark)",
+                        color: !simpleFont
+                          ? "var(--accent)"
+                          : "var(--ink-muted)",
+                        fontFamily: "'Instrument Serif', Georgia, serif",
+                        cursor: "pointer",
+                      }}
+                    >
+                      Serif
+                    </button>
+                    <button
+                      onClick={() => setSimpleFont(true)}
+                      style={{
+                        flex: 1,
+                        padding: "6px",
+                        fontSize: "calc(12px * var(--scale, 1))",
+                        borderRadius: "var(--radius-sm)",
+                        border: "1px solid var(--cream-border)",
+                        background: simpleFont
+                          ? "var(--accent-bg)"
+                          : "var(--cream-dark)",
+                        color: simpleFont
+                          ? "var(--accent)"
+                          : "var(--ink-muted)",
+                        fontFamily: "'Fraunces', Georgia, serif",
+                        cursor: "pointer",
+                      }}
+                    >
+                      Fraunces
+                    </button>
+                  </div>
+                </div>
+
+                {/* Font Size */}
+                <div>
+                  <div
+                    style={{
+                      fontSize: "calc(12px * var(--scale, 1))",
+                      color: "var(--ink-muted)",
+                      marginBottom: 6,
+                    }}
+                  >
+                    Text Size
+                  </div>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    {(["S", "M", "L"] as const).map((s) => (
+                      <button
+                        key={s}
+                        onClick={() => setFontSize(s)}
+                        style={{
+                          flex: 1,
+                          padding: "6px",
+                          fontSize: `calc(${s === "S" ? 11 : s === "M" ? 13 : 15}px * var(--scale, 1))`,
+                          borderRadius: "var(--radius-sm)",
+                          border: "1px solid var(--cream-border)",
+                          background:
+                            fontSize === s
+                              ? "var(--accent-bg)"
+                              : "var(--cream-dark)",
+                          color:
+                            fontSize === s
+                              ? "var(--accent)"
+                              : "var(--ink-muted)",
+                          cursor: "pointer",
+                          fontFamily: "var(--font-body)",
+                        }}
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
       {/* ── date nav ── */}
-      {activeTab !== "dashboard" && activeTab !== "exam" && (
+      {activeTab !== "dashboard" && activeTab !== "practice" && (
         <div
           style={{
             padding: "12px 24px",
@@ -670,7 +779,7 @@ export default function App() {
             <div
               style={{
                 fontFamily: "var(--font-display)",
-                fontSize: 16,
+                fontSize: "calc(16px * var(--scale, 1))",
                 color: "var(--ink)",
               }}
             >
@@ -680,7 +789,7 @@ export default function App() {
               <button
                 onClick={() => setViewDate(new Date())}
                 style={{
-                  fontSize: 11,
+                  fontSize: "calc(11px * var(--scale, 1))",
                   color: "var(--accent)",
                   background: "none",
                   border: "none",
@@ -694,7 +803,7 @@ export default function App() {
             ) : (
               <div
                 style={{
-                  fontSize: 11,
+                  fontSize: "calc(11px * var(--scale, 1))",
                   color: "var(--ink-faint)",
                   marginTop: 2,
                 }}
@@ -719,14 +828,20 @@ export default function App() {
         }}
       >
         {(
-          ["dashboard", "exam", "checklist", "milestones", "subjects"] as const
+          [
+            "dashboard",
+            "practice",
+            "checklist",
+            "milestones",
+            "subjects",
+          ] as const
         ).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
             style={{
               fontFamily: "var(--font-body)",
-              fontSize: 13,
+              fontSize: "calc(13px * var(--scale, 1))",
               padding: "10px 14px",
               background: "none",
               border: "none",
@@ -739,10 +854,10 @@ export default function App() {
               cursor: "pointer",
               fontWeight: activeTab === tab ? 500 : 400,
               transition: "color 0.15s",
-              textTransform: tab === "exam" ? "none" : "capitalize",
+              textTransform: "capitalize",
             }}
           >
-            {tab === "exam" ? "Mock Exam" : tab}
+            {tab}
           </button>
         ))}
       </div>
@@ -753,7 +868,9 @@ export default function App() {
           flex: 1,
           overflowY: "auto",
           padding:
-            activeTab === "dashboard" || activeTab === "exam" ? 0 : "20px 24px",
+            activeTab === "dashboard" || activeTab === "practice"
+              ? 0
+              : "20px 24px",
         }}
       >
         {activeTab === "dashboard" && (
@@ -766,7 +883,7 @@ export default function App() {
             studyDays={studyDays}
           />
         )}
-        {activeTab === "exam" && <MockExam />}
+        {activeTab === "practice" && <MockExam />}
 
         {/* checklist */}
         {activeTab === "checklist" && (
@@ -785,7 +902,7 @@ export default function App() {
                   <div
                     style={{
                       fontFamily: "var(--font-display)",
-                      fontSize: 18,
+                      fontSize: "calc(18px * var(--scale, 1))",
                       color: "var(--ink)",
                     }}
                   >
@@ -793,7 +910,11 @@ export default function App() {
                   </div>
                   <button
                     onClick={() => setTemplateEditMode("view")}
-                    style={{ ...navBtn, padding: "6px 12px", fontSize: 12 }}
+                    style={{
+                      ...navBtn,
+                      padding: "6px 12px",
+                      fontSize: "calc(12px * var(--scale, 1))",
+                    }}
                   >
                     Done
                   </button>
@@ -805,7 +926,7 @@ export default function App() {
                     style={{
                       flex: 1,
                       padding: "8px",
-                      fontSize: 13,
+                      fontSize: "calc(13px * var(--scale, 1))",
                       border: "1px solid var(--cream-border)",
                       borderRadius: "var(--radius-sm)",
                       cursor: "pointer",
@@ -827,7 +948,7 @@ export default function App() {
                     style={{
                       flex: 1,
                       padding: "8px",
-                      fontSize: 13,
+                      fontSize: "calc(13px * var(--scale, 1))",
                       border: "1px solid var(--cream-border)",
                       borderRadius: "var(--radius-sm)",
                       cursor: "pointer",
@@ -888,7 +1009,7 @@ export default function App() {
                             width: "100%",
                             padding: "6px 10px",
                             marginBottom: 6,
-                            fontSize: 13,
+                            fontSize: "calc(13px * var(--scale, 1))",
                             border: "1px solid var(--cream-border)",
                             borderRadius: "var(--radius-sm)",
                             background: "var(--cream)",
@@ -916,7 +1037,7 @@ export default function App() {
                             style={{
                               flex: 1,
                               padding: "6px 10px",
-                              fontSize: 12,
+                              fontSize: "calc(12px * var(--scale, 1))",
                               border: "1px solid var(--cream-border)",
                               borderRadius: "var(--radius-sm)",
                               background: "var(--cream)",
@@ -943,7 +1064,7 @@ export default function App() {
                             style={{
                               flex: 2,
                               padding: "6px 10px",
-                              fontSize: 12,
+                              fontSize: "calc(12px * var(--scale, 1))",
                               border: "1px solid var(--cream-border)",
                               borderRadius: "var(--radius-sm)",
                               background: "var(--cream)",
@@ -978,7 +1099,7 @@ export default function App() {
                               background: "none",
                               border: "none",
                               color: "var(--red)",
-                              fontSize: 12,
+                              fontSize: "calc(12px * var(--scale, 1))",
                               cursor: "pointer",
                             }}
                           >
@@ -1009,7 +1130,7 @@ export default function App() {
                       }}
                       style={{
                         padding: "8px",
-                        fontSize: 13,
+                        fontSize: "calc(13px * var(--scale, 1))",
                         border: "1px dashed var(--cream-border)",
                         borderRadius: "var(--radius-sm)",
                         background: "transparent",
@@ -1033,7 +1154,7 @@ export default function App() {
                       style={{
                         marginTop: 24,
                         padding: "8px",
-                        fontSize: 12,
+                        fontSize: "calc(12px * var(--scale, 1))",
                         border: "1px solid var(--cream-border)",
                         borderRadius: "var(--radius-sm)",
                         background: "transparent",
@@ -1058,12 +1179,17 @@ export default function App() {
                         marginBottom: 6,
                       }}
                     >
-                      <span style={{ fontSize: 12, color: "var(--ink-muted)" }}>
+                      <span
+                        style={{
+                          fontSize: "calc(12px * var(--scale, 1))",
+                          color: "var(--ink-muted)",
+                        }}
+                      >
                         {checkedCount} of {allItems.length} completed
                       </span>
                       <span
                         style={{
-                          fontSize: 12,
+                          fontSize: "calc(12px * var(--scale, 1))",
                           fontWeight: 500,
                           color: "var(--ink)",
                         }}
@@ -1105,7 +1231,7 @@ export default function App() {
                   >
                     <div
                       style={{
-                        fontSize: 11,
+                        fontSize: "calc(11px * var(--scale, 1))",
                         color: "var(--ink-faint)",
                         marginBottom: 2,
                       }}
@@ -1114,7 +1240,7 @@ export default function App() {
                     </div>
                     <div
                       style={{
-                        fontSize: 14,
+                        fontSize: "calc(14px * var(--scale, 1))",
                         fontWeight: 500,
                         color: "var(--ink)",
                       }}
@@ -1202,7 +1328,7 @@ export default function App() {
                             >
                               <span
                                 style={{
-                                  fontSize: 13,
+                                  fontSize: "calc(13px * var(--scale, 1))",
                                   fontWeight: 500,
                                   color: "var(--ink)",
                                   textDecoration: done
@@ -1214,7 +1340,7 @@ export default function App() {
                               </span>
                               <span
                                 style={{
-                                  fontSize: 10,
+                                  fontSize: "calc(10px * var(--scale, 1))",
                                   padding: "1px 6px",
                                   borderRadius: 3,
                                   background: tag.bg,
@@ -1228,7 +1354,7 @@ export default function App() {
                             {item.time && (
                               <div
                                 style={{
-                                  fontSize: 11,
+                                  fontSize: "calc(11px * var(--scale, 1))",
                                   color: "var(--ink-faint)",
                                   marginTop: 1,
                                 }}
@@ -1239,7 +1365,7 @@ export default function App() {
                             {item.note && (
                               <div
                                 style={{
-                                  fontSize: 12,
+                                  fontSize: "calc(12px * var(--scale, 1))",
                                   color: "var(--ink-muted)",
                                   marginTop: 3,
                                   fontStyle: "italic",
@@ -1267,7 +1393,7 @@ export default function App() {
                             background: "var(--cream-dark)",
                             cursor: "pointer",
                             color: "var(--ink-faint)",
-                            fontSize: 16,
+                            fontSize: "calc(16px * var(--scale, 1))",
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
@@ -1286,7 +1412,7 @@ export default function App() {
                     <button
                       onClick={restorePrescribedTasks}
                       style={{
-                        fontSize: 12,
+                        fontSize: "calc(12px * var(--scale, 1))",
                         color: "var(--ink-muted)",
                         background: "none",
                         border: "none",
@@ -1327,7 +1453,7 @@ export default function App() {
                         style={{
                           width: "100%",
                           padding: "8px 12px",
-                          fontSize: 13,
+                          fontSize: "calc(13px * var(--scale, 1))",
                           border: "1px solid var(--cream-border)",
                           borderRadius: "var(--radius-sm)",
                           background: "var(--cream)",
@@ -1349,7 +1475,7 @@ export default function App() {
                           style={{
                             flex: 1,
                             padding: "8px 12px",
-                            fontSize: 13,
+                            fontSize: "calc(13px * var(--scale, 1))",
                             border: "1px solid var(--cream-border)",
                             borderRadius: "var(--radius-sm)",
                             background: "var(--cream)",
@@ -1370,7 +1496,7 @@ export default function App() {
                           style={{
                             flex: 2,
                             padding: "8px 12px",
-                            fontSize: 13,
+                            fontSize: "calc(13px * var(--scale, 1))",
                             border: "1px solid var(--cream-border)",
                             borderRadius: "var(--radius-sm)",
                             background: "var(--cream)",
@@ -1392,7 +1518,7 @@ export default function App() {
                           onClick={() => setShowAddTask(false)}
                           style={{
                             padding: "6px 12px",
-                            fontSize: 12,
+                            fontSize: "calc(12px * var(--scale, 1))",
                             border: "1px solid var(--cream-border)",
                             borderRadius: "var(--radius-sm)",
                             background: "var(--cream)",
@@ -1408,7 +1534,7 @@ export default function App() {
                           disabled={!newTaskLabel.trim()}
                           style={{
                             padding: "6px 12px",
-                            fontSize: 12,
+                            fontSize: "calc(12px * var(--scale, 1))",
                             border: "none",
                             borderRadius: "var(--radius-sm)",
                             background: newTaskLabel.trim()
@@ -1431,7 +1557,7 @@ export default function App() {
                       style={{
                         width: "100%",
                         padding: "9px 0",
-                        fontSize: 13,
+                        fontSize: "calc(13px * var(--scale, 1))",
                         border: "1px dashed var(--cream-border)",
                         borderRadius: "var(--radius-sm)",
                         background: "transparent",
@@ -1459,7 +1585,7 @@ export default function App() {
                     }}
                     style={{
                       padding: "6px 12px",
-                      fontSize: 11,
+                      fontSize: "calc(11px * var(--scale, 1))",
                       border: "none",
                       background: "transparent",
                       color: "var(--ink-muted)",
@@ -1485,7 +1611,7 @@ export default function App() {
                     <div
                       style={{
                         fontFamily: "var(--font-display)",
-                        fontSize: 16,
+                        fontSize: "calc(16px * var(--scale, 1))",
                         color: "var(--green)",
                       }}
                     >
@@ -1493,7 +1619,7 @@ export default function App() {
                     </div>
                     <div
                       style={{
-                        fontSize: 12,
+                        fontSize: "calc(12px * var(--scale, 1))",
                         color: "var(--green)",
                         marginTop: 2,
                         opacity: 0.8,
@@ -1513,7 +1639,7 @@ export default function App() {
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             <div
               style={{
-                fontSize: 12,
+                fontSize: "calc(12px * var(--scale, 1))",
                 color: "var(--ink-muted)",
                 marginBottom: 4,
               }}
@@ -1541,7 +1667,7 @@ export default function App() {
                   <div style={{ flex: 1 }}>
                     <div
                       style={{
-                        fontSize: 13,
+                        fontSize: "calc(13px * var(--scale, 1))",
                         fontWeight: 500,
                         color: "var(--ink)",
                         marginBottom: 4,
@@ -1566,7 +1692,7 @@ export default function App() {
                           if (e.key === "Escape") setEditingMilestone(null);
                         }}
                         style={{
-                          fontSize: 12,
+                          fontSize: "calc(12px * var(--scale, 1))",
                           padding: "4px 8px",
                           border: "1px solid var(--accent-light)",
                           borderRadius: "var(--radius-sm)",
@@ -1580,7 +1706,7 @@ export default function App() {
                       <div
                         onClick={() => setEditingMilestone(m.id)}
                         style={{
-                          fontSize: 11,
+                          fontSize: "calc(11px * var(--scale, 1))",
                           color: "var(--ink-faint)",
                           cursor: "pointer",
                           display: "inline-flex",
@@ -1595,7 +1721,7 @@ export default function App() {
                         })}
                         <span
                           style={{
-                            fontSize: 10,
+                            fontSize: "calc(10px * var(--scale, 1))",
                             color: "var(--accent)",
                             opacity: 0.7,
                           }}
@@ -1607,7 +1733,7 @@ export default function App() {
                   </div>
                   <div
                     style={{
-                      fontSize: 13,
+                      fontSize: "calc(13px * var(--scale, 1))",
                       fontWeight: 500,
                       padding: "4px 12px",
                       borderRadius: "var(--radius-sm)",
@@ -1632,7 +1758,7 @@ export default function App() {
             >
               <div
                 style={{
-                  fontSize: 11,
+                  fontSize: "calc(11px * var(--scale, 1))",
                   color: "var(--ink-faint)",
                   marginBottom: 4,
                 }}
@@ -1642,7 +1768,7 @@ export default function App() {
               <div
                 style={{
                   fontFamily: "var(--font-display)",
-                  fontSize: 32,
+                  fontSize: "calc(32px * var(--scale, 1))",
                   color: "var(--accent)",
                 }}
               >
@@ -1650,7 +1776,7 @@ export default function App() {
               </div>
               <div
                 style={{
-                  fontSize: 12,
+                  fontSize: "calc(12px * var(--scale, 1))",
                   color: "var(--ink-muted)",
                   marginTop: 2,
                 }}
@@ -1670,7 +1796,7 @@ export default function App() {
               }}
               style={{
                 padding: "8px 0",
-                fontSize: 12,
+                fontSize: "calc(12px * var(--scale, 1))",
                 border: "1px solid var(--cream-border)",
                 borderRadius: "var(--radius-sm)",
                 background: "transparent",
@@ -1689,7 +1815,7 @@ export default function App() {
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             <div
               style={{
-                fontSize: 12,
+                fontSize: "calc(12px * var(--scale, 1))",
                 color: "var(--ink-muted)",
                 marginBottom: 4,
               }}
@@ -1732,7 +1858,7 @@ export default function App() {
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      fontSize: 11,
+                      fontSize: "calc(11px * var(--scale, 1))",
                       fontWeight: 500,
                       color: isCurrent ? "white" : "var(--ink-muted)",
                     }}
@@ -1742,14 +1868,19 @@ export default function App() {
                   <div>
                     <div
                       style={{
-                        fontSize: 13,
+                        fontSize: "calc(13px * var(--scale, 1))",
                         fontWeight: 500,
                         color: "var(--ink)",
                       }}
                     >
                       {s.name}
                     </div>
-                    <div style={{ fontSize: 11, color: "var(--ink-faint)" }}>
+                    <div
+                      style={{
+                        fontSize: "calc(11px * var(--scale, 1))",
+                        color: "var(--ink-faint)",
+                      }}
+                    >
                       {s.short} · {s.weight}% LLE Weight
                     </div>
                   </div>
@@ -1757,7 +1888,7 @@ export default function App() {
                     <div
                       style={{
                         marginLeft: "auto",
-                        fontSize: 10,
+                        fontSize: "calc(10px * var(--scale, 1))",
                         padding: "2px 8px",
                         background: "var(--accent)",
                         color: "white",
@@ -1787,7 +1918,7 @@ const navBtn: React.CSSProperties = {
   border: "1px solid var(--cream-border)",
   background: "var(--cream)",
   cursor: "pointer",
-  fontSize: 14,
+  fontSize: "calc(14px * var(--scale, 1))",
   color: "var(--ink-muted)",
   display: "flex",
   alignItems: "center",

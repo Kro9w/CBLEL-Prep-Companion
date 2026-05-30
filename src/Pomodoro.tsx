@@ -91,7 +91,13 @@ export default function Pomodoro() {
               marginBottom: 16,
             }}
           >
-            <div style={{ fontSize: 13, fontWeight: 500, color: "var(--ink)" }}>
+            <div
+              style={{
+                fontSize: "calc(13px * var(--scale, 1))",
+                fontWeight: 500,
+                color: "var(--ink)",
+              }}
+            >
               Pomodoro Timer
             </div>
             <button
@@ -101,7 +107,7 @@ export default function Pomodoro() {
                 border: "none",
                 color: "var(--ink-faint)",
                 cursor: "pointer",
-                fontSize: 20,
+                fontSize: "calc(20px * var(--scale, 1))",
                 lineHeight: 1,
               }}
             >
@@ -119,7 +125,7 @@ export default function Pomodoro() {
               style={{
                 flex: 1,
                 padding: "6px",
-                fontSize: 12,
+                fontSize: "calc(12px * var(--scale, 1))",
                 fontWeight: 500,
                 border: "none",
                 borderRadius: "var(--radius-sm)",
@@ -141,7 +147,7 @@ export default function Pomodoro() {
               style={{
                 flex: 1,
                 padding: "6px",
-                fontSize: 12,
+                fontSize: "calc(12px * var(--scale, 1))",
                 fontWeight: 500,
                 border: "none",
                 borderRadius: "var(--radius-sm)",
@@ -160,7 +166,7 @@ export default function Pomodoro() {
             <div
               style={{
                 fontFamily: "var(--font-display)",
-                fontSize: 48,
+                fontSize: "calc(48px * var(--scale, 1))",
                 color: "var(--ink)",
                 lineHeight: 1,
                 fontVariantNumeric: "tabular-nums",
@@ -284,12 +290,12 @@ export default function Pomodoro() {
             gap: 8,
             cursor: "pointer",
             fontFamily: "var(--font-body)",
-            fontSize: 14,
+            fontSize: "calc(14px * var(--scale, 1))",
             fontWeight: 500,
             transition: "all 0.2s",
           }}
         >
-          <span style={{ fontSize: 16 }}>⏱</span>
+          <span style={{ fontSize: "calc(16px * var(--scale, 1))" }}>⏱</span>
           {isRunning ? timeStr : "Pomodoro"}
         </button>
       )}

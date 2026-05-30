@@ -3,7 +3,12 @@ import { loadSubjects } from "./App";
 
 // ── types
 type Option = { letter: string; text: string; correct: boolean };
-type Question = { number: number; stem: string; options: Option[] };
+type Question = {
+  number: number;
+  stem: string;
+  options: Option[];
+  explanation?: string;
+};
 type SessionMode = "immediate" | "end";
 type ExamPhase = "load" | "configure" | "exam" | "review" | "history";
 
@@ -14,6 +19,7 @@ type WrongItem = {
   chosenText?: string;
   correctLetter: string;
   correctText: string;
+  explanation?: string;
 };
 
 type SavedExam = {
@@ -58,32 +64,102 @@ function parseQuestions(raw: string): Question[] {
   const questions: Question[] = [];
   let current: (Partial<Question> & { options: Option[] }) | null = null;
 
-  const questionRe = /^(\d+)[.)]\s+(.+)$/;
-  const optionRe = /^(\*?)([A-Da-d])[.)]\s+(.+)$/;
+  // New format: Q. ..., O. ..., *O. ..., Y: ...
+  // Old format: 1. ..., A. ..., *B. ...
+  const questionReOld = /^(\d+)[.)]\s+(.+)$/;
+  const questionReNew = /^Q\.\s+(.+)$/i;
+  const optionReOld = /^(\*?)([A-Da-d])[.)]\s+(.+)$/;
+  const optionReNew = /^(\*?)O\.\s+(.+)$/i;
+  const explanationRe = /^Y:\s+(.+)$/i;
+
   // skip the exam code line
   const examCodeRe = /^[A-Z]{2,6}_\d+$/i;
 
+  let questionCounter = 1;
+
   for (const line of lines) {
     if (examCodeRe.test(line)) continue;
-    const qMatch = line.match(questionRe);
-    const oMatch = line.match(optionRe);
-    if (qMatch && !oMatch) {
+
+    const qMatchOld = line.match(questionReOld);
+    const qMatchNew = line.match(questionReNew);
+    const oMatchOld = line.match(optionReOld);
+    const oMatchNew = line.match(optionReNew);
+    const yMatch = line.match(explanationRe);
+
+    if (qMatchOld || qMatchNew) {
       if (current && current.stem && current.options.length > 0)
         questions.push(current as Question);
-      current = { number: parseInt(qMatch[1]), stem: qMatch[2], options: [] };
-    } else if (oMatch && current) {
+
+      const stemText = qMatchOld ? qMatchOld[2] : qMatchNew ? qMatchNew[1] : "";
+
+      current = { number: questionCounter++, stem: stemText, options: [] };
+    } else if ((oMatchOld || oMatchNew) && current) {
+      const isCorrect = oMatchOld
+        ? oMatchOld[1] === "*"
+        : oMatchNew![1] === "*";
+      const text = oMatchOld ? oMatchOld[3].trim() : oMatchNew![2].trim();
+
+      let letter = "A";
+      if (oMatchOld) {
+        letter = oMatchOld[2].toUpperCase();
+      } else {
+        // Assign A, B, C, D dynamically based on existing options
+        const letters = ["A", "B", "C", "D"];
+        letter = letters[current.options.length] || "?";
+      }
+
       current.options.push({
-        letter: oMatch[2].toUpperCase(),
-        text: oMatch[3].trim(),
-        correct: oMatch[1] === "*",
+        letter,
+        text,
+        correct: isCorrect,
       });
-    } else if (current && !qMatch && !oMatch && line.length > 0) {
-      current.stem += " " + line;
+    } else if (yMatch && current) {
+      current.explanation = yMatch[1].trim();
+    } else if (
+      current &&
+      !qMatchOld &&
+      !qMatchNew &&
+      !oMatchOld &&
+      !oMatchNew &&
+      !yMatch &&
+      line.length > 0
+    ) {
+      if (current.explanation) {
+        current.explanation += " " + line;
+      } else {
+        current.stem += " " + line;
+      }
     }
   }
   if (current && current.stem && current.options.length > 0)
     questions.push(current as Question);
   return questions;
+}
+
+// ── logic helpers
+function shuffleArray<T>(array: T[]): T[] {
+  const arr = [...array];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function processQuestionsSubset(
+  allQuestions: Question[],
+  count: number,
+): Question[] {
+  // Shuffle all questions, take the subset, then map to assign new letters/numbers
+  const subset = shuffleArray(allQuestions).slice(0, count);
+  return subset.map((q, idx) => {
+    // Shuffle options while re-assigning letters
+    const shuffledOptions = shuffleArray(q.options).map((opt, oIdx) => {
+      const letters = ["A", "B", "C", "D", "E", "F"];
+      return { ...opt, letter: letters[oIdx] || "?" };
+    });
+    return { ...q, number: idx + 1, options: shuffledOptions };
+  });
 }
 
 // ── storage helpers
@@ -184,7 +260,13 @@ function ProgressBar({ current, total }: { current: number; total: number }) {
           }}
         />
       </div>
-      <span style={{ fontSize: 11, color: "var(--ink-faint)", flexShrink: 0 }}>
+      <span
+        style={{
+          fontSize: "calc(11px * var(--scale, 1))",
+          color: "var(--ink-faint)",
+          flexShrink: 0,
+        }}
+      >
         {current}/{total}
       </span>
     </div>
@@ -229,7 +311,7 @@ function TimerDisplay({ elapsed, limit }: { elapsed: number; limit: number }) {
       </div>
       <span
         style={{
-          fontSize: 12,
+          fontSize: "calc(12px * var(--scale, 1))",
           fontWeight: 500,
           color,
           fontVariantNumeric: "tabular-nums",
@@ -250,14 +332,19 @@ function WrongReview({ wrong }: { wrong: WrongItem[] }) {
         <div
           style={{
             fontFamily: "var(--font-display)",
-            fontSize: 18,
+            fontSize: "calc(18px * var(--scale, 1))",
             color: "var(--green)",
             marginBottom: 6,
           }}
         >
           Perfect score.
         </div>
-        <div style={{ fontSize: 13, color: "var(--ink-muted)" }}>
+        <div
+          style={{
+            fontSize: "calc(13px * var(--scale, 1))",
+            color: "var(--ink-muted)",
+          }}
+        >
           Every single answer was correct.
         </div>
       </div>
@@ -275,13 +362,17 @@ function WrongReview({ wrong }: { wrong: WrongItem[] }) {
           }}
         >
           <div
-            style={{ fontSize: 11, color: "var(--ink-faint)", marginBottom: 6 }}
+            style={{
+              fontSize: "calc(11px * var(--scale, 1))",
+              color: "var(--ink-faint)",
+              marginBottom: 6,
+            }}
           >
             Q{w.number}
           </div>
           <div
             style={{
-              fontSize: 13,
+              fontSize: "calc(13px * var(--scale, 1))",
               fontWeight: 500,
               color: "var(--ink)",
               marginBottom: 10,
@@ -304,7 +395,7 @@ function WrongReview({ wrong }: { wrong: WrongItem[] }) {
               >
                 <span
                   style={{
-                    fontSize: 10,
+                    fontSize: "calc(10px * var(--scale, 1))",
                     fontWeight: 500,
                     padding: "2px 6px",
                     borderRadius: 3,
@@ -316,7 +407,11 @@ function WrongReview({ wrong }: { wrong: WrongItem[] }) {
                   ✗ {w.chosen}
                 </span>
                 <span
-                  style={{ fontSize: 12, color: "var(--red)", lineHeight: 1.5 }}
+                  style={{
+                    fontSize: "calc(12px * var(--scale, 1))",
+                    color: "var(--red)",
+                    lineHeight: 1.5,
+                  }}
                 >
                   {w.chosenText
                     ? `${w.chosenText} — your answer`
@@ -336,7 +431,7 @@ function WrongReview({ wrong }: { wrong: WrongItem[] }) {
             >
               <span
                 style={{
-                  fontSize: 10,
+                  fontSize: "calc(10px * var(--scale, 1))",
                   fontWeight: 500,
                   padding: "2px 6px",
                   borderRadius: 3,
@@ -348,11 +443,31 @@ function WrongReview({ wrong }: { wrong: WrongItem[] }) {
                 ✓ {w.correctLetter}
               </span>
               <span
-                style={{ fontSize: 12, color: "var(--green)", lineHeight: 1.5 }}
+                style={{
+                  fontSize: "calc(12px * var(--scale, 1))",
+                  color: "var(--green)",
+                  lineHeight: 1.5,
+                }}
               >
                 {w.correctText} — correct answer
               </span>
             </div>
+            {w.explanation && (
+              <div
+                style={{
+                  marginTop: 6,
+                  padding: "10px 12px",
+                  background: "var(--cream-dark)",
+                  borderLeft: "2px solid var(--accent)",
+                  borderRadius: "0 var(--radius-sm) var(--radius-sm) 0",
+                  fontSize: "calc(12px * var(--scale, 1))",
+                  color: "var(--ink-muted)",
+                  lineHeight: 1.5,
+                }}
+              >
+                <strong>Explanation:</strong> {w.explanation}
+              </div>
+            )}
           </div>
         </div>
       ))}
@@ -384,14 +499,19 @@ function PreviousExams() {
         <div
           style={{
             fontFamily: "var(--font-display)",
-            fontSize: 18,
+            fontSize: "calc(18px * var(--scale, 1))",
             color: "var(--ink)",
             marginBottom: 8,
           }}
         >
           No exams saved yet.
         </div>
-        <div style={{ fontSize: 13, color: "var(--ink-muted)" }}>
+        <div
+          style={{
+            fontSize: "calc(13px * var(--scale, 1))",
+            color: "var(--ink-muted)",
+          }}
+        >
           After finishing an exam, save it to see it here.
         </div>
       </div>
@@ -406,7 +526,13 @@ function PreviousExams() {
         gap: 10,
       }}
     >
-      <div style={{ fontSize: 12, color: "var(--ink-muted)", marginBottom: 4 }}>
+      <div
+        style={{
+          fontSize: "calc(12px * var(--scale, 1))",
+          color: "var(--ink-muted)",
+          marginBottom: 4,
+        }}
+      >
         {exams.length} exam{exams.length !== 1 ? "s" : ""} saved
       </div>
       {exams.map((exam) => {
@@ -452,7 +578,7 @@ function PreviousExams() {
                 >
                   <span
                     style={{
-                      fontSize: 13,
+                      fontSize: "calc(13px * var(--scale, 1))",
                       fontWeight: 500,
                       color: "var(--ink)",
                     }}
@@ -461,7 +587,7 @@ function PreviousExams() {
                   </span>
                   <span
                     style={{
-                      fontSize: 10,
+                      fontSize: "calc(10px * var(--scale, 1))",
                       padding: "1px 6px",
                       borderRadius: 3,
                       background: scoreBg(exam.score),
@@ -472,7 +598,12 @@ function PreviousExams() {
                     {scoreLabel(exam.score)}
                   </span>
                 </div>
-                <div style={{ fontSize: 11, color: "var(--ink-faint)" }}>
+                <div
+                  style={{
+                    fontSize: "calc(11px * var(--scale, 1))",
+                    color: "var(--ink-faint)",
+                  }}
+                >
                   {formatDateDisplay(exam.date)} · {formatTime(exam.timeTaken)}{" "}
                   taken
                 </div>
@@ -481,20 +612,25 @@ function PreviousExams() {
                 <div
                   style={{
                     fontFamily: "var(--font-display)",
-                    fontSize: 22,
+                    fontSize: "calc(22px * var(--scale, 1))",
                     color: scoreColor(exam.score),
                     lineHeight: 1,
                   }}
                 >
                   {exam.score}
                 </div>
-                <div style={{ fontSize: 10, color: "var(--ink-faint)" }}>
+                <div
+                  style={{
+                    fontSize: "calc(10px * var(--scale, 1))",
+                    color: "var(--ink-faint)",
+                  }}
+                >
                   {exam.correct}/{exam.total}
                 </div>
               </div>
               <div
                 style={{
-                  fontSize: 12,
+                  fontSize: "calc(12px * var(--scale, 1))",
                   color: "var(--ink-faint)",
                   marginLeft: 4,
                 }}
@@ -521,7 +657,7 @@ function PreviousExams() {
                 >
                   <div
                     style={{
-                      fontSize: 11,
+                      fontSize: "calc(11px * var(--scale, 1))",
                       padding: "3px 10px",
                       borderRadius: "var(--radius-sm)",
                       background: "var(--cream-dark)",
@@ -535,7 +671,7 @@ function PreviousExams() {
                   </div>
                   <div
                     style={{
-                      fontSize: 11,
+                      fontSize: "calc(11px * var(--scale, 1))",
                       padding: "3px 10px",
                       borderRadius: "var(--radius-sm)",
                       background: "var(--cream-dark)",
@@ -546,7 +682,7 @@ function PreviousExams() {
                   </div>
                   <div
                     style={{
-                      fontSize: 11,
+                      fontSize: "calc(11px * var(--scale, 1))",
                       padding: "3px 10px",
                       borderRadius: "var(--radius-sm)",
                       background: "var(--cream-dark)",
@@ -561,7 +697,7 @@ function PreviousExams() {
                   <>
                     <div
                       style={{
-                        fontSize: 12,
+                        fontSize: "calc(12px * var(--scale, 1))",
                         fontWeight: 500,
                         color: "var(--ink)",
                         marginBottom: 10,
@@ -575,7 +711,7 @@ function PreviousExams() {
                 {exam.wrong.length === 0 && (
                   <div
                     style={{
-                      fontSize: 13,
+                      fontSize: "calc(13px * var(--scale, 1))",
                       color: "#3D6B4F",
                       fontStyle: "italic",
                     }}
@@ -595,7 +731,12 @@ function PreviousExams() {
                     <div
                       style={{ display: "flex", alignItems: "center", gap: 8 }}
                     >
-                      <span style={{ fontSize: 12, color: "var(--ink-muted)" }}>
+                      <span
+                        style={{
+                          fontSize: "calc(12px * var(--scale, 1))",
+                          color: "var(--ink-muted)",
+                        }}
+                      >
                         Delete this record?
                       </span>
                       <button
@@ -644,6 +785,12 @@ export default function MockExam() {
   const [parseError, setParseError] = useState("");
   const [mode, setMode] = useState<SessionMode>("end");
   const [dragOver, setDragOver] = useState(false);
+  const [showCustom, setShowCustom] = useState(false);
+  const [subjectSelector, setSubjectSelector] = useState<{
+    show: boolean;
+    count: number;
+  }>({ show: false, count: 0 });
+  const [copiedPrompt, setCopiedPrompt] = useState(false);
 
   // exam state
   const [current, setCurrent] = useState(0);
@@ -713,7 +860,9 @@ export default function MockExam() {
         setParseError("No questions found. Check the format guide below.");
         return;
       }
-      setQuestions(parsed);
+      // Shuffle options for custom uploads as well so AI generated questions aren't predictable
+      const shuffledParsed = processQuestionsSubset(parsed, parsed.length);
+      setQuestions(shuffledParsed);
       setExamCode(code);
       setFileName(file.name);
       setParseError("");
@@ -732,6 +881,40 @@ export default function MockExam() {
     const file = e.dataTransfer.files[0];
     if (file) handleFile(file);
   }, []);
+
+  async function fetchBuiltIn(subjectShort: string, count: number) {
+    try {
+      setParseError("");
+      const res = await fetch(`/QBank_${subjectShort}.txt`);
+      if (!res.ok) {
+        setParseError(
+          `Could not load QBank_${subjectShort}.txt. Make sure the file exists in the public directory.`,
+        );
+        return;
+      }
+      const text = await res.text();
+      let code = parseExamCode(text);
+      if (!code) code = `${subjectShort}_1`; // Fallback code
+
+      const parsedAll = parseQuestions(text);
+      if (parsedAll.length === 0) {
+        setParseError(
+          "Under construction. Questions for this subject will be added in a future update.",
+        );
+        return;
+      }
+
+      const subset = processQuestionsSubset(parsedAll, count);
+
+      setQuestions(subset);
+      setExamCode(code);
+      setFileName(`QBank_${subjectShort}.txt`);
+      setPhase("configure");
+      setSubjectSelector({ show: false, count: 0 });
+    } catch (err) {
+      setParseError("Error fetching question bank: " + String(err));
+    }
+  }
 
   // ── exam logic
   function startExam() {
@@ -785,6 +968,7 @@ export default function MockExam() {
             chosenText: chosenOpt?.text,
             correctLetter: correctOpt?.letter || "",
             correctText: correctOpt?.text || "",
+            explanation: q.explanation,
           };
         })
         .filter(Boolean) as WrongItem[];
@@ -850,6 +1034,7 @@ export default function MockExam() {
         chosenText: chosenOpt?.text,
         correctLetter: correctOpt?.letter || "",
         correctText: correctOpt?.text || "",
+        explanation: q.explanation,
       };
     })
     .filter(Boolean) as WrongItem[];
@@ -886,7 +1071,7 @@ export default function MockExam() {
           onClick={() => setView(t)}
           style={{
             fontFamily: "var(--font-body)",
-            fontSize: 13,
+            fontSize: "calc(13px * var(--scale, 1))",
             padding: "10px 14px",
             background: "none",
             border: "none",
@@ -932,64 +1117,29 @@ export default function MockExam() {
             <div
               style={{
                 fontFamily: "var(--font-display)",
-                fontSize: 20,
+                fontSize: "calc(20px * var(--scale, 1))",
                 color: "var(--ink)",
                 marginBottom: 4,
               }}
             >
-              Mock Exam
+              Practice
             </div>
-            <div style={{ fontSize: 13, color: "var(--ink-muted)" }}>
-              Load a question file to begin your session.
-            </div>
-          </div>
-
-          <div
-            onDragOver={(e) => {
-              e.preventDefault();
-              setDragOver(true);
-            }}
-            onDragLeave={() => setDragOver(false)}
-            onDrop={onDrop}
-            onClick={() => fileInputRef.current?.click()}
-            style={{
-              border: `2px dashed ${dragOver ? "var(--accent)" : "var(--cream-border)"}`,
-              borderRadius: "var(--radius)",
-              padding: "36px 24px",
-              textAlign: "center",
-              cursor: "pointer",
-              background: dragOver ? "var(--accent-bg)" : "var(--cream-dark)",
-              transition: "all 0.15s",
-              marginBottom: 12,
-            }}
-          >
-            <div style={{ fontSize: 28, marginBottom: 10 }}>📄</div>
             <div
               style={{
-                fontSize: 14,
-                fontWeight: 500,
-                color: "var(--ink)",
-                marginBottom: 4,
+                fontSize: "calc(13px * var(--scale, 1))",
+                color: "var(--ink-muted)",
               }}
             >
-              Drop your .txt file here
+              {subjectSelector.show
+                ? "Select a subject to begin."
+                : "Choose a mode to begin your session."}
             </div>
-            <div style={{ fontSize: 12, color: "var(--ink-faint)" }}>
-              or click to browse
-            </div>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".txt"
-              onChange={onFileInput}
-              style={{ display: "none" }}
-            />
           </div>
 
           {parseError && (
             <div
               style={{
-                fontSize: 12,
+                fontSize: "calc(12px * var(--scale, 1))",
                 color: "#8B3A3A",
                 background: "#F5E8E8",
                 padding: "8px 12px",
@@ -1001,79 +1151,412 @@ export default function MockExam() {
             </div>
           )}
 
-          <div
-            style={{
-              background: "var(--cream)",
-              border: "1px solid var(--cream-border)",
-              borderRadius: "var(--radius)",
-              padding: "14px 16px",
-              marginTop: 8,
-            }}
-          >
-            <div
-              style={{
-                fontSize: 12,
-                fontWeight: 500,
-                color: "var(--ink)",
-                marginBottom: 8,
-              }}
-            >
-              Expected file format
-            </div>
-            <pre
-              style={{
-                fontSize: 11,
-                color: "var(--ink-muted)",
-                lineHeight: 1.7,
-                fontFamily: "var(--font-mono, monospace)",
-                margin: 0,
-                whiteSpace: "pre-wrap",
-              }}
-            >{`LOM_1
-
-1. Which of the following is a cataloging standard?
-*A. AACR2
-B. HTML
-C. SQL
-D. ISBN
-
-2. The Dewey Decimal System classifies by?
-A. Author name
-*B. Subject
-C. Publication year
-D. Country`}</pre>
-            <div
-              style={{
-                fontSize: 11,
-                color: "var(--ink-faint)",
-                marginTop: 10,
-                borderTop: "1px solid var(--cream-border)",
-                paddingTop: 8,
-              }}
-            >
-              First line must be the exam code (e.g.{" "}
-              <code
+          {subjectSelector.show ? (
+            <div>
+              <button
+                onClick={() => {
+                  setSubjectSelector({ show: false, count: 0 });
+                  setParseError("");
+                }}
                 style={{
-                  background: "var(--cream-dark)",
-                  padding: "1px 5px",
-                  borderRadius: 3,
+                  background: "none",
+                  border: "none",
+                  color: "var(--ink-muted)",
+                  fontSize: "calc(13px * var(--scale, 1))",
+                  cursor: "pointer",
+                  marginBottom: 16,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 4,
                 }}
               >
-                LOM_1
-              </code>
-              ). Prefix the correct option with{" "}
-              <code
+                ← Back to modes
+              </button>
+              <div
                 style={{
-                  background: "var(--cream-dark)",
-                  padding: "1px 5px",
-                  borderRadius: 3,
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: 12,
                 }}
               >
-                *
-              </code>{" "}
-              before the letter.
+                {allSubjects.map((subj) => (
+                  <button
+                    key={subj.short}
+                    onClick={() =>
+                      fetchBuiltIn(subj.short, subjectSelector.count)
+                    }
+                    style={{
+                      padding: "16px 20px",
+                      background: "var(--cream)",
+                      border: "1px solid var(--cream-border)",
+                      borderRadius: "var(--radius)",
+                      cursor: "pointer",
+                      textAlign: "left",
+                      fontFamily: "var(--font-body)",
+                      transition: "background 0.15s, border 0.15s",
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: "calc(15px * var(--scale, 1))",
+                        fontWeight: 500,
+                        color: "var(--ink)",
+                        marginBottom: 4,
+                      }}
+                    >
+                      {subj.short}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: "calc(12px * var(--scale, 1))",
+                        color: "var(--ink-muted)",
+                        lineHeight: 1.4,
+                      }}
+                    >
+                      {subj.name}
+                    </div>
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          ) : !showCustom ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <button
+                onClick={() => setSubjectSelector({ show: true, count: 15 })}
+                style={{
+                  padding: "16px 20px",
+                  background: "var(--cream)",
+                  border: "1px solid var(--cream-border)",
+                  borderRadius: "var(--radius)",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  fontFamily: "var(--font-body)",
+                  transition: "background 0.15s, border 0.15s",
+                }}
+              >
+                <div style={{ textAlign: "left" }}>
+                  <div
+                    style={{
+                      fontSize: "calc(15px * var(--scale, 1))",
+                      fontWeight: 500,
+                      color: "var(--ink)",
+                      marginBottom: 4,
+                    }}
+                  >
+                    Take a Quiz
+                  </div>
+                  <div
+                    style={{
+                      fontSize: "calc(12px * var(--scale, 1))",
+                      color: "var(--ink-muted)",
+                    }}
+                  >
+                    15 randomized items from your chosen subject.
+                  </div>
+                </div>
+                <div
+                  style={{
+                    fontSize: "calc(18px * var(--scale, 1))",
+                    color: "var(--ink-faint)",
+                  }}
+                >
+                  →
+                </div>
+              </button>
+
+              <button
+                onClick={() => setSubjectSelector({ show: true, count: 100 })}
+                style={{
+                  padding: "16px 20px",
+                  background: "var(--cream)",
+                  border: "1px solid var(--cream-border)",
+                  borderRadius: "var(--radius)",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  fontFamily: "var(--font-body)",
+                  transition: "background 0.15s, border 0.15s",
+                }}
+              >
+                <div style={{ textAlign: "left" }}>
+                  <div
+                    style={{
+                      fontSize: "calc(15px * var(--scale, 1))",
+                      fontWeight: 500,
+                      color: "var(--ink)",
+                      marginBottom: 4,
+                    }}
+                  >
+                    Take a Mock Exam
+                  </div>
+                  <div
+                    style={{
+                      fontSize: "calc(12px * var(--scale, 1))",
+                      color: "var(--ink-muted)",
+                    }}
+                  >
+                    100 randomized items to simulate the real thing.
+                  </div>
+                </div>
+                <div
+                  style={{
+                    fontSize: "calc(18px * var(--scale, 1))",
+                    color: "var(--ink-faint)",
+                  }}
+                >
+                  →
+                </div>
+              </button>
+
+              <div
+                style={{
+                  height: 1,
+                  background: "var(--cream-border)",
+                  margin: "12px 0",
+                }}
+              />
+
+              <button
+                onClick={() => {
+                  setShowCustom(true);
+                  setParseError("");
+                }}
+                style={{
+                  padding: "16px 20px",
+                  background: "var(--cream-dark)",
+                  border: "1px dashed var(--cream-border)",
+                  borderRadius: "var(--radius)",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  fontFamily: "var(--font-body)",
+                  transition: "background 0.15s, border 0.15s",
+                }}
+              >
+                <div style={{ textAlign: "left" }}>
+                  <div
+                    style={{
+                      fontSize: "calc(14px * var(--scale, 1))",
+                      fontWeight: 500,
+                      color: "var(--ink)",
+                      marginBottom: 4,
+                    }}
+                  >
+                    Custom Upload
+                  </div>
+                  <div
+                    style={{
+                      fontSize: "calc(12px * var(--scale, 1))",
+                      color: "var(--ink-faint)",
+                    }}
+                  >
+                    Load your own .txt file with custom questions.
+                  </div>
+                </div>
+                <div
+                  style={{
+                    fontSize: "calc(18px * var(--scale, 1))",
+                    color: "var(--ink-faint)",
+                  }}
+                >
+                  +
+                </div>
+              </button>
+            </div>
+          ) : (
+            <div>
+              <button
+                onClick={() => {
+                  setShowCustom(false);
+                  setParseError("");
+                }}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "var(--ink-muted)",
+                  fontSize: "calc(13px * var(--scale, 1))",
+                  cursor: "pointer",
+                  marginBottom: 16,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 4,
+                }}
+              >
+                ← Back to modes
+              </button>
+
+              <div
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setDragOver(true);
+                }}
+                onDragLeave={() => setDragOver(false)}
+                onDrop={onDrop}
+                onClick={() => fileInputRef.current?.click()}
+                style={{
+                  border: `2px dashed ${dragOver ? "var(--accent)" : "var(--cream-border)"}`,
+                  borderRadius: "var(--radius)",
+                  padding: "36px 24px",
+                  textAlign: "center",
+                  cursor: "pointer",
+                  background: dragOver
+                    ? "var(--accent-bg)"
+                    : "var(--cream-dark)",
+                  transition: "all 0.15s",
+                  marginBottom: 12,
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: "calc(28px * var(--scale, 1))",
+                    marginBottom: 10,
+                  }}
+                >
+                  📄
+                </div>
+                <div
+                  style={{
+                    fontSize: "calc(14px * var(--scale, 1))",
+                    fontWeight: 500,
+                    color: "var(--ink)",
+                    marginBottom: 4,
+                  }}
+                >
+                  Drop your .txt file here
+                </div>
+                <div
+                  style={{
+                    fontSize: "calc(12px * var(--scale, 1))",
+                    color: "var(--ink-faint)",
+                  }}
+                >
+                  or click to browse
+                </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".txt"
+                  onChange={onFileInput}
+                  style={{ display: "none" }}
+                />
+              </div>
+
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "center",
+                  marginBottom: 12,
+                }}
+              >
+                <button
+                  onClick={() => {
+                    navigator.clipboard
+                      .writeText(`Please create 100 multiple-choice questions for the subject based on the attached files. Use exactly this format:
+First line must be the exam code (e.g. LOM_1).
+Then for each question:
+Q. [The question text]
+O. [Incorrect option]
+*O. [Correct option with an asterisk at the start]
+O. [Incorrect option]
+O. [Incorrect option]
+Y: [Explanation for the answer]
+
+Do not use numbers for questions or letters for choices. Always use Q., O., *O., and Y:. Provide no other conversation or text outside of this exact format.`);
+                    setCopiedPrompt(true);
+                    setTimeout(() => setCopiedPrompt(false), 2000);
+                  }}
+                  style={{
+                    padding: "8px 16px",
+                    background: "transparent",
+                    border: "1px dashed var(--cream-border)",
+                    borderRadius: "var(--radius-sm)",
+                    color: "var(--ink-muted)",
+                    fontSize: "calc(12px * var(--scale, 1))",
+                    cursor: "pointer",
+                    fontFamily: "var(--font-body)",
+                    transition: "all 0.15s",
+                  }}
+                >
+                  {copiedPrompt
+                    ? "✓ Prompt Copied!"
+                    : "📋 Copy sample AI prompt"}
+                </button>
+              </div>
+
+              <div
+                style={{
+                  background: "var(--cream)",
+                  border: "1px solid var(--cream-border)",
+                  borderRadius: "var(--radius)",
+                  padding: "14px 16px",
+                  marginTop: 8,
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: "calc(12px * var(--scale, 1))",
+                    fontWeight: 500,
+                    color: "var(--ink)",
+                    marginBottom: 8,
+                  }}
+                >
+                  Expected file format
+                </div>
+                <pre
+                  style={{
+                    fontSize: "calc(11px * var(--scale, 1))",
+                    color: "var(--ink-muted)",
+                    lineHeight: 1.7,
+                    fontFamily: "var(--font-mono, monospace)",
+                    margin: 0,
+                    whiteSpace: "pre-wrap",
+                  }}
+                >{`LOM_1
+
+Q. A library administration decides to use "Lean Management" principles. What is the absolute primary objective of a Lean strategy in a library's physical processing department?
+*O. The relentless identification and total elimination of all forms of "waste"...
+O. Firing 50% of the staff...
+O. Forcing the staff to work...
+O. Outsourcing all cataloging...
+Y: Lean management (derived from the Toyota Production System)...`}</pre>
+                <div
+                  style={{
+                    fontSize: "calc(11px * var(--scale, 1))",
+                    color: "var(--ink-faint)",
+                    marginTop: 10,
+                    borderTop: "1px solid var(--cream-border)",
+                    paddingTop: 8,
+                  }}
+                >
+                  First line must be the exam code (e.g.{" "}
+                  <code
+                    style={{
+                      background: "var(--cream-dark)",
+                      padding: "1px 5px",
+                      borderRadius: 3,
+                    }}
+                  >
+                    LOM_1
+                  </code>
+                  ). Start questions with Q., prefix the correct option with{" "}
+                  <code
+                    style={{
+                      background: "var(--cream-dark)",
+                      padding: "1px 5px",
+                      borderRadius: 3,
+                    }}
+                  >
+                    *
+                  </code>{" "}
+                  before O., and prefix explanations with Y:.
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -1095,14 +1578,19 @@ D. Country`}</pre>
             <div
               style={{
                 fontFamily: "var(--font-display)",
-                fontSize: 20,
+                fontSize: "calc(20px * var(--scale, 1))",
                 color: "var(--ink)",
                 marginBottom: 4,
               }}
             >
               Session setup
             </div>
-            <div style={{ fontSize: 13, color: "var(--ink-muted)" }}>
+            <div
+              style={{
+                fontSize: "calc(13px * var(--scale, 1))",
+                color: "var(--ink-muted)",
+              }}
+            >
               <span style={{ color: "var(--green)", fontWeight: 500 }}>
                 {questions.length} questions
               </span>{" "}
@@ -1116,7 +1604,7 @@ D. Country`}</pre>
           <div style={{ marginBottom: 20 }}>
             <div
               style={{
-                fontSize: 12,
+                fontSize: "calc(12px * var(--scale, 1))",
                 fontWeight: 500,
                 color: "var(--ink)",
                 marginBottom: 10,
@@ -1182,14 +1670,19 @@ D. Country`}</pre>
                   <div>
                     <div
                       style={{
-                        fontSize: 13,
+                        fontSize: "calc(13px * var(--scale, 1))",
                         fontWeight: 500,
                         color: "var(--ink)",
                       }}
                     >
                       {opt.label}
                     </div>
-                    <div style={{ fontSize: 11, color: "var(--ink-faint)" }}>
+                    <div
+                      style={{
+                        fontSize: "calc(11px * var(--scale, 1))",
+                        color: "var(--ink-faint)",
+                      }}
+                    >
                       {opt.note}
                     </div>
                   </div>
@@ -1205,14 +1698,14 @@ D. Country`}</pre>
               border: "1px solid var(--cream-border)",
               borderRadius: "var(--radius-sm)",
               marginBottom: 20,
-              fontSize: 12,
+              fontSize: "calc(12px * var(--scale, 1))",
               color: "var(--ink-muted)",
               display: "flex",
               alignItems: "center",
               gap: 8,
             }}
           >
-            <span style={{ fontSize: 16 }}>⏱</span>
+            <span style={{ fontSize: "calc(16px * var(--scale, 1))" }}>⏱</span>
             Strict 1-hour timer. Exam auto-submits when time runs out.
           </div>
 
@@ -1222,7 +1715,7 @@ D. Country`}</pre>
               style={{
                 flex: 1,
                 padding: "10px 0",
-                fontSize: 13,
+                fontSize: "calc(13px * var(--scale, 1))",
                 fontWeight: 500,
                 background: "var(--accent)",
                 color: "white",
@@ -1238,7 +1731,7 @@ D. Country`}</pre>
               onClick={reset}
               style={{
                 padding: "10px 16px",
-                fontSize: 13,
+                fontSize: "calc(13px * var(--scale, 1))",
                 background: "var(--cream-dark)",
                 color: "var(--ink-muted)",
                 border: "1px solid var(--cream-border)",
@@ -1277,10 +1770,20 @@ D. Country`}</pre>
             }}
           >
             <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-              <span style={{ fontSize: 12, color: "var(--ink-faint)" }}>
+              <span
+                style={{
+                  fontSize: "calc(12px * var(--scale, 1))",
+                  color: "var(--ink-faint)",
+                }}
+              >
                 {examCode} · {mode === "immediate" ? "Immediate" : "Full exam"}
               </span>
-              <span style={{ fontSize: 11, color: "var(--ink-muted)" }}>
+              <span
+                style={{
+                  fontSize: "calc(11px * var(--scale, 1))",
+                  color: "var(--ink-muted)",
+                }}
+              >
                 {answeredCount}/{questions.length} answered
               </span>
             </div>
@@ -1312,7 +1815,7 @@ D. Country`}</pre>
           >
             <div
               style={{
-                fontSize: 11,
+                fontSize: "calc(11px * var(--scale, 1))",
                 color: "var(--ink-faint)",
                 marginBottom: 10,
                 fontWeight: 500,
@@ -1322,7 +1825,7 @@ D. Country`}</pre>
             </div>
             <div
               style={{
-                fontSize: 15,
+                fontSize: "calc(15px * var(--scale, 1))",
                 color: "var(--ink)",
                 lineHeight: 1.65,
                 fontWeight: 500,
@@ -1381,7 +1884,7 @@ D. Country`}</pre>
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      fontSize: 11,
+                      fontSize: "calc(11px * var(--scale, 1))",
                       fontWeight: 500,
                       color,
                       background:
@@ -1394,7 +1897,7 @@ D. Country`}</pre>
                   </div>
                   <div
                     style={{
-                      fontSize: 13,
+                      fontSize: "calc(13px * var(--scale, 1))",
                       color,
                       lineHeight: 1.5,
                       paddingTop: 3,
@@ -1406,7 +1909,7 @@ D. Country`}</pre>
                     <div
                       style={{
                         marginLeft: "auto",
-                        fontSize: 11,
+                        fontSize: "calc(11px * var(--scale, 1))",
                         color: "var(--green)",
                         fontWeight: 500,
                         flexShrink: 0,
@@ -1420,7 +1923,7 @@ D. Country`}</pre>
                     <div
                       style={{
                         marginLeft: "auto",
-                        fontSize: 11,
+                        fontSize: "calc(11px * var(--scale, 1))",
                         color: "var(--red)",
                         fontWeight: 500,
                         flexShrink: 0,
@@ -1461,7 +1964,7 @@ D. Country`}</pre>
               ...navBtn,
               background: "var(--cream-dark)",
               color: "var(--ink-muted)",
-              fontSize: 12,
+              fontSize: "calc(12px * var(--scale, 1))",
               opacity: 0.6,
             }}
           >
@@ -1499,7 +2002,7 @@ D. Country`}</pre>
                 borderRadius: "var(--radius-sm)",
                 padding: "10px 14px",
                 marginBottom: 16,
-                fontSize: 12,
+                fontSize: "calc(12px * var(--scale, 1))",
                 color: "var(--red)",
                 fontWeight: 500,
               }}
@@ -1523,7 +2026,7 @@ D. Country`}</pre>
             <div>
               <div
                 style={{
-                  fontSize: 11,
+                  fontSize: "calc(11px * var(--scale, 1))",
                   fontWeight: 500,
                   color: "var(--ink-muted)",
                   textTransform: "uppercase",
@@ -1536,17 +2039,19 @@ D. Country`}</pre>
               <div
                 style={{
                   fontFamily: "var(--font-display)",
-                  fontSize: 36,
+                  fontSize: "calc(36px * var(--scale, 1))",
                   color: scoreColor(scorePercent),
                   lineHeight: 1,
                 }}
               >
                 {scorePercent}
-                <span style={{ fontSize: 18 }}>/100</span>
+                <span style={{ fontSize: "calc(18px * var(--scale, 1))" }}>
+                  /100
+                </span>
               </div>
               <div
                 style={{
-                  fontSize: 12,
+                  fontSize: "calc(12px * var(--scale, 1))",
                   color: "var(--ink-muted)",
                   marginTop: 6,
                 }}
@@ -1557,7 +2062,7 @@ D. Country`}</pre>
               {matchedSubject && matchedSubject.weight && (
                 <div
                   style={{
-                    fontSize: 12,
+                    fontSize: "calc(12px * var(--scale, 1))",
                     color: scoreColor(scorePercent),
                     marginTop: 2,
                     fontWeight: 500,
@@ -1571,7 +2076,7 @@ D. Country`}</pre>
             <div style={{ textAlign: "right" }}>
               <div
                 style={{
-                  fontSize: 13,
+                  fontSize: "calc(13px * var(--scale, 1))",
                   fontWeight: 500,
                   color: scoreColor(scorePercent),
                 }}
@@ -1580,14 +2085,19 @@ D. Country`}</pre>
               </div>
               <div
                 style={{
-                  fontSize: 11,
+                  fontSize: "calc(11px * var(--scale, 1))",
                   color: "var(--ink-faint)",
                   marginTop: 4,
                 }}
               >
                 Time taken: {formatTime(elapsed)}
               </div>
-              <div style={{ fontSize: 11, color: "var(--ink-faint)" }}>
+              <div
+                style={{
+                  fontSize: "calc(11px * var(--scale, 1))",
+                  color: "var(--ink-faint)",
+                }}
+              >
                 Score auto-logged to dashboard
               </div>
             </div>
@@ -1610,7 +2120,7 @@ D. Country`}</pre>
             <div>
               <div
                 style={{
-                  fontSize: 13,
+                  fontSize: "calc(13px * var(--scale, 1))",
                   fontWeight: 500,
                   color: "var(--ink)",
                   marginBottom: 2,
@@ -1618,7 +2128,12 @@ D. Country`}</pre>
               >
                 Save this exam result?
               </div>
-              <div style={{ fontSize: 11, color: "var(--ink-faint)" }}>
+              <div
+                style={{
+                  fontSize: "calc(11px * var(--scale, 1))",
+                  color: "var(--ink-faint)",
+                }}
+              >
                 Stores score, time taken, date, and all wrong answers for review
                 later.
               </div>
@@ -1626,7 +2141,7 @@ D. Country`}</pre>
             {saved ? (
               <div
                 style={{
-                  fontSize: 12,
+                  fontSize: "calc(12px * var(--scale, 1))",
                   color: "var(--green)",
                   fontWeight: 500,
                   flexShrink: 0,
@@ -1639,7 +2154,7 @@ D. Country`}</pre>
                 onClick={saveExam}
                 style={{
                   padding: "8px 18px",
-                  fontSize: 13,
+                  fontSize: "calc(13px * var(--scale, 1))",
                   fontWeight: 500,
                   background: "var(--accent)",
                   color: "white",
@@ -1660,7 +2175,7 @@ D. Country`}</pre>
             <>
               <div
                 style={{
-                  fontSize: 13,
+                  fontSize: "calc(13px * var(--scale, 1))",
                   fontWeight: 500,
                   color: "var(--ink)",
                   marginBottom: 12,
@@ -1676,14 +2191,19 @@ D. Country`}</pre>
               <div
                 style={{
                   fontFamily: "var(--font-display)",
-                  fontSize: 18,
+                  fontSize: "calc(18px * var(--scale, 1))",
                   color: "#3D6B4F",
                   marginBottom: 6,
                 }}
               >
                 Perfect score.
               </div>
-              <div style={{ fontSize: 13, color: "var(--ink-muted)" }}>
+              <div
+                style={{
+                  fontSize: "calc(13px * var(--scale, 1))",
+                  color: "var(--ink-muted)",
+                }}
+              >
                 Every single answer was correct.
               </div>
             </div>
@@ -1696,7 +2216,7 @@ D. Country`}</pre>
               style={{
                 flex: 1,
                 padding: "10px 0",
-                fontSize: 13,
+                fontSize: "calc(13px * var(--scale, 1))",
                 fontWeight: 500,
                 background: "var(--accent-bg)",
                 color: "var(--accent)",
@@ -1713,7 +2233,7 @@ D. Country`}</pre>
               style={{
                 flex: 1,
                 padding: "10px 0",
-                fontSize: 13,
+                fontSize: "calc(13px * var(--scale, 1))",
                 fontWeight: 500,
                 background: "var(--cream-dark)",
                 color: "var(--ink-muted)",
@@ -1730,7 +2250,7 @@ D. Country`}</pre>
               style={{
                 flex: 1,
                 padding: "10px 0",
-                fontSize: 13,
+                fontSize: "calc(13px * var(--scale, 1))",
                 fontWeight: 500,
                 background: "var(--cream-dark)",
                 color: "var(--ink-muted)",
@@ -1752,7 +2272,7 @@ D. Country`}</pre>
 
 const navBtn: React.CSSProperties = {
   padding: "9px 20px",
-  fontSize: 13,
+  fontSize: "calc(13px * var(--scale, 1))",
   fontWeight: 500,
   borderRadius: "var(--radius-sm)",
   cursor: "pointer",
@@ -1764,7 +2284,7 @@ const navBtn: React.CSSProperties = {
 
 const smallBtn: React.CSSProperties = {
   padding: "6px 12px",
-  fontSize: 12,
+  fontSize: "calc(12px * var(--scale, 1))",
   border: "1px solid var(--cream-border)",
   borderRadius: "var(--radius-sm)",
   background: "var(--cream-dark)",
