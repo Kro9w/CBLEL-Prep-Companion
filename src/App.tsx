@@ -286,6 +286,8 @@ export default function App() {
   const [showAddTask, setShowAddTask] = useState(false);
   const [tourSeen, setTourSeen] = useState(() => loadJSON("tourSeen", false));
 
+  const [mobileSettingsOpen, setMobileSettingsOpen] = useState(false);
+
   const [studyTemplate, setStudyTemplate] = useState<ChecklistItem[]>(() =>
     loadJSON("studyTemplate", DEFAULT_STUDY_TEMPLATE),
   );
@@ -576,6 +578,203 @@ export default function App() {
             </button>
           ))}
         </nav>
+        <div
+          className="mobile-settings"
+          style={{
+            marginTop: "auto",
+            borderTop: "1px solid var(--cream-border)",
+          }}
+        >
+          <button
+            onClick={() => setMobileSettingsOpen(!mobileSettingsOpen)}
+            style={{
+              fontFamily: "var(--font-body)",
+              fontSize: "calc(14px * var(--scale, 1))",
+              padding: "16px 20px",
+              background: mobileSettingsOpen
+                ? "var(--cream-dark)"
+                : "transparent",
+              border: "none",
+              textAlign: "left",
+              color: "var(--ink)",
+              cursor: "pointer",
+              fontWeight: mobileSettingsOpen ? 500 : 400,
+              width: "100%",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span
+                style={{
+                  fontSize: "calc(16px * var(--scale, 1))",
+                  color: "var(--ink-muted)",
+                }}
+              >
+                ⚙
+              </span>
+              Settings
+            </div>
+            <span
+              style={{
+                fontSize: "calc(12px * var(--scale, 1))",
+                color: "var(--ink-faint)",
+              }}
+            >
+              {mobileSettingsOpen ? "▼" : "▲"}
+            </span>
+          </button>
+          {mobileSettingsOpen && (
+            <div
+              style={{
+                background: "var(--cream)",
+                padding: "16px 20px",
+                display: "flex",
+                flexDirection: "column",
+                gap: 16,
+              }}
+            >
+              {/* Theme Toggle */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: "calc(13px * var(--scale, 1))",
+                    fontWeight: 500,
+                    color: "var(--ink)",
+                  }}
+                >
+                  Dark Mode
+                </span>
+                <button
+                  onClick={() => setDarkMode(!darkMode)}
+                  style={{
+                    width: 40,
+                    height: 22,
+                    borderRadius: 12,
+                    background: darkMode
+                      ? "var(--accent)"
+                      : "var(--cream-dark)",
+                    border: "1px solid var(--cream-border)",
+                    position: "relative",
+                    cursor: "pointer",
+                    transition: "background 0.2s",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 16,
+                      height: 16,
+                      borderRadius: "50%",
+                      background: darkMode
+                        ? "var(--cream)"
+                        : "var(--ink-muted)",
+                      position: "absolute",
+                      top: 2,
+                      left: darkMode ? 20 : 2,
+                      transition: "left 0.2s",
+                    }}
+                  />
+                </button>
+              </div>
+
+              {/* Font Style */}
+              <div>
+                <div
+                  style={{
+                    fontSize: "calc(12px * var(--scale, 1))",
+                    color: "var(--ink-muted)",
+                    marginBottom: 6,
+                  }}
+                >
+                  Font Style
+                </div>
+                <div style={{ display: "flex", gap: 6 }}>
+                  <button
+                    onClick={() => setSimpleFont(false)}
+                    style={{
+                      flex: 1,
+                      padding: "6px",
+                      fontSize: "calc(12px * var(--scale, 1))",
+                      borderRadius: "var(--radius-sm)",
+                      border: "1px solid var(--cream-border)",
+                      background: !simpleFont
+                        ? "var(--accent-bg)"
+                        : "var(--cream-dark)",
+                      color: !simpleFont ? "var(--accent)" : "var(--ink-muted)",
+                      fontFamily: "'Instrument Serif', Georgia, serif",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Serif
+                  </button>
+                  <button
+                    onClick={() => setSimpleFont(true)}
+                    style={{
+                      flex: 1,
+                      padding: "6px",
+                      fontSize: "calc(12px * var(--scale, 1))",
+                      borderRadius: "var(--radius-sm)",
+                      border: "1px solid var(--cream-border)",
+                      background: simpleFont
+                        ? "var(--accent-bg)"
+                        : "var(--cream-dark)",
+                      color: simpleFont ? "var(--accent)" : "var(--ink-muted)",
+                      fontFamily: "'Fraunces', Georgia, serif",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Fraunces
+                  </button>
+                </div>
+              </div>
+
+              {/* Font Size */}
+              <div>
+                <div
+                  style={{
+                    fontSize: "calc(12px * var(--scale, 1))",
+                    color: "var(--ink-muted)",
+                    marginBottom: 6,
+                  }}
+                >
+                  Text Size
+                </div>
+                <div style={{ display: "flex", gap: 6 }}>
+                  {(["S", "M", "L"] as const).map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => setFontSize(s)}
+                      style={{
+                        flex: 1,
+                        padding: "6px",
+                        fontSize: `calc(${s === "S" ? 11 : s === "M" ? 13 : 15}px * var(--scale, 1))`,
+                        borderRadius: "var(--radius-sm)",
+                        border: "1px solid var(--cream-border)",
+                        background:
+                          fontSize === s
+                            ? "var(--accent-bg)"
+                            : "var(--cream-dark)",
+                        color:
+                          fontSize === s ? "var(--accent)" : "var(--ink-muted)",
+                        cursor: "pointer",
+                        fontFamily: "var(--font-body)",
+                      }}
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </aside>
       {!tourSeen && (
         <TourOverlay
@@ -655,7 +854,7 @@ export default function App() {
               Rest day
             </span>
           )}
-          <div style={{ position: "relative" }}>
+          <div className="desktop-settings" style={{ position: "relative" }}>
             <button
               onClick={() => setShowSettings((s) => !s)}
               title="Settings"
@@ -969,7 +1168,7 @@ export default function App() {
             studyDays={studyDays}
           />
         )}
-        {activeTab === "practice" && <MockExam />}
+        {activeTab === "practice" && <MockExam isRestDay={restDay} />}
 
         {/* checklist */}
         {activeTab === "checklist" && (

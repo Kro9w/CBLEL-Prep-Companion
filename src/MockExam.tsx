@@ -776,7 +776,7 @@ function PreviousExams() {
 }
 
 // ── main component
-export default function MockExam() {
+export default function MockExam({ isRestDay }: { isRestDay: boolean }) {
   const [view, setView] = useState<"exam" | "history">("exam");
   const [phase, setPhase] = useState<ExamPhase>("load");
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -791,6 +791,11 @@ export default function MockExam() {
     count: number;
   }>({ show: false, count: 0 });
   const [copiedPrompt, setCopiedPrompt] = useState(false);
+
+  // rest day modal state
+  const [restModalAction, setRestModalAction] = useState<(() => void) | null>(
+    null,
+  );
 
   // exam state
   const [current, setCurrent] = useState(0);
@@ -846,6 +851,14 @@ export default function MockExam() {
   }, [elapsed, phase]);
 
   // ── file loading
+  function proceedAction(action: () => void) {
+    if (isRestDay) {
+      setRestModalAction(() => action);
+    } else {
+      action();
+    }
+  }
+
   function handleFile(file: File) {
     if (!file.name.endsWith(".txt")) {
       setParseError("Please upload a .txt file.");
@@ -1222,7 +1235,11 @@ export default function MockExam() {
           ) : !showCustom ? (
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <button
-                onClick={() => setSubjectSelector({ show: true, count: 15 })}
+                onClick={() =>
+                  proceedAction(() =>
+                    setSubjectSelector({ show: true, count: 15 }),
+                  )
+                }
                 style={{
                   padding: "16px 20px",
                   background: "var(--cream)",
@@ -1267,7 +1284,11 @@ export default function MockExam() {
               </button>
 
               <button
-                onClick={() => setSubjectSelector({ show: true, count: 100 })}
+                onClick={() =>
+                  proceedAction(() =>
+                    setSubjectSelector({ show: true, count: 100 }),
+                  )
+                }
                 style={{
                   padding: "16px 20px",
                   background: "var(--cream)",
@@ -1320,10 +1341,12 @@ export default function MockExam() {
               />
 
               <button
-                onClick={() => {
-                  setShowCustom(true);
-                  setParseError("");
-                }}
+                onClick={() =>
+                  proceedAction(() => {
+                    setShowCustom(true);
+                    setParseError("");
+                  })
+                }
                 style={{
                   padding: "16px 20px",
                   background: "var(--cream-dark)",
@@ -1558,6 +1581,92 @@ Y: Lean management (derived from the Toyota Production System)...`}</pre>
             </div>
           )}
         </div>
+
+        {/* Rest Day Modal */}
+        {restModalAction && (
+          <>
+            <div
+              style={{
+                position: "fixed",
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background: "rgba(0, 0, 0, 0.5)",
+                zIndex: 1000,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+              onClick={() => setRestModalAction(null)}
+            >
+              <div
+                style={{
+                  background: "var(--cream)",
+                  padding: "24px",
+                  borderRadius: "var(--radius)",
+                  border: "1px solid var(--cream-border)",
+                  maxWidth: "400px",
+                  width: "90%",
+                  textAlign: "center",
+                }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div
+                  style={{
+                    fontFamily: "var(--font-display)",
+                    fontSize: "calc(20px * var(--scale, 1))",
+                    color: "var(--ink)",
+                    marginBottom: 16,
+                  }}
+                >
+                  You should be resting today
+                  <br />
+                  Are you sure you want to proceed?
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "12px",
+                    justifyContent: "center",
+                  }}
+                >
+                  <button
+                    onClick={() => setRestModalAction(null)}
+                    style={{
+                      padding: "8px 16px",
+                      background: "var(--cream-dark)",
+                      border: "1px solid var(--cream-border)",
+                      borderRadius: "var(--radius-sm)",
+                      color: "var(--ink-muted)",
+                      cursor: "pointer",
+                      fontFamily: "var(--font-body)",
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (restModalAction) restModalAction();
+                      setRestModalAction(null);
+                    }}
+                    style={{
+                      padding: "8px 16px",
+                      background: "var(--accent)",
+                      border: "none",
+                      borderRadius: "var(--radius-sm)",
+                      color: "white",
+                      cursor: "pointer",
+                      fontFamily: "var(--font-body)",
+                    }}
+                  >
+                    Yes, proceed
+                  </button>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
       </div>
     );
 

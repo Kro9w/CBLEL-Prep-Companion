@@ -143,12 +143,22 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 /* Responsive visibility */
+.mobile-settings {
+  display: none !important;
+}
+
 @media (max-width: 768px) {
   .hamburger-btn {
     display: block;
   }
   .desktop-tabs {
     display: none !important;
+  }
+  .desktop-settings {
+    display: none !important;
+  }
+  .mobile-settings {
+    display: block !important;
   }
 }
 
