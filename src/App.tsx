@@ -250,6 +250,37 @@ export default function App() {
   const [viewDate, setViewDate] = useState(() => new Date());
   const [checks, setChecks] = useState<Record<string, boolean>>({});
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
+
+  useEffect(() => {
+    const handleTouchStart = (e: TouchEvent) => {
+      // The user requested: "when swiping to the right anywhere on the app, the drawer opens"
+      // So we will just record the start X position regardless of where the swipe started
+      setTouchStartX(e.touches[0].clientX);
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      if (touchStartX === null) return;
+      const touchEndX = e.changedTouches[0].clientX;
+      const swipeDistance = touchEndX - touchStartX;
+
+      // Swipe right detected (threshold 50px)
+      if (swipeDistance > 50) {
+        setSidebarOpen(true);
+      }
+
+      setTouchStartX(null);
+    };
+
+    window.addEventListener("touchstart", handleTouchStart);
+    window.addEventListener("touchend", handleTouchEnd);
+
+    return () => {
+      window.removeEventListener("touchstart", handleTouchStart);
+      window.removeEventListener("touchend", handleTouchEnd);
+    };
+  }, [touchStartX]);
+
   const [activeTab, setActiveTab] = useState<
     "dashboard" | "practice" | "checklist" | "milestones" | "subjects"
   >("dashboard");

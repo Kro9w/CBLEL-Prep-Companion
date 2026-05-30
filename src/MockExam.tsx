@@ -898,7 +898,7 @@ export default function MockExam({ isRestDay }: { isRestDay: boolean }) {
   async function fetchBuiltIn(subjectShort: string, count: number) {
     try {
       setParseError("");
-      const res = await fetch(`/QBank_${subjectShort}.txt`);
+      const res = await fetch(`QBank_${subjectShort}.txt`);
       if (!res.ok) {
         setParseError(
           `Could not load QBank_${subjectShort}.txt. Make sure the file exists in the public directory.`,

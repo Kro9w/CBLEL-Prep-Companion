@@ -14,9 +14,10 @@ dist/
 .vscode-test
 tmp/
 temp/
-src/QBank_CC.txt
-src/QBank_CM.txt
-src/QBank_IA.txt
-src/QBank_IT.txt
-src/QBank_LOM.txt
-src/QBank_RBU.txt
+public/QBank_CC.txt
+public/QBank_CM.txt
+public/QBank_IA.txt
+public/QBank_IT.txt
+public/QBank_LOM.txt
+public/QBank_RBU.txt
+src-tauri/
