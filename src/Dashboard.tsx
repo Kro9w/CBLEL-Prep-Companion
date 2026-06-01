@@ -127,6 +127,9 @@ function deletedKey(d: Date) {
 function scoreKey(d: Date) {
   return `score-${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
 }
+export function quizCompletedKey(d: Date) {
+  return `quiz-completed-${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+}
 
 function loadJSON<T>(key: string, fallback: T): T {
   try {
@@ -162,9 +165,10 @@ function isDayCompleted(
   studyDays: number[],
 ): boolean {
   if (isRestDay(d, studyDays)) return true;
-  // A day is considered complete if there is an exam score logged for it
+  // A day is considered complete if there is an exam score or quiz logged for it
   const score = loadJSON<number | null>(scoreKey(d), null);
-  return score !== null;
+  const quiz = loadJSON<boolean | null>(quizCompletedKey(d), null);
+  return score !== null || quiz !== null;
 }
 
 function computeStreak(
@@ -263,14 +267,17 @@ function StatCard({
   value,
   sub,
   color,
+  onClick,
 }: {
   label: string;
   value: string | number;
   sub?: string;
   color?: string;
+  onClick?: () => void;
 }) {
   return (
     <div
+      onClick={onClick}
       style={{
         background: "var(--cream)",
         border: "1px solid var(--cream-border)",
@@ -279,6 +286,7 @@ function StatCard({
         display: "flex",
         flexDirection: "column",
         gap: 4,
+        cursor: onClick ? "pointer" : "default",
       }}
     >
       <div
@@ -641,6 +649,7 @@ export default function Dashboard({
   milestones,
   cycleLength,
   studyDays,
+  onNavigateToPractice,
 }: {
   userName: string;
   startDateStr: string;
@@ -648,6 +657,7 @@ export default function Dashboard({
   milestones: MilestoneData[];
   cycleLength: number;
   studyDays: number[];
+  onNavigateToPractice: () => void;
 }) {
   const [weekOffset, setWeekOffset] = useState(0);
   const [scores, setScores] = useState<{ date: string; score: number }[]>([]);
@@ -698,6 +708,14 @@ export default function Dashboard({
     scores.length > 0 ? Math.max(...scores.map((s) => s.score)) : null;
 
   const { subject: currentSubject } = getSubjectForDate(
+    today,
+    startDateStr,
+    subjects,
+    cycleLength,
+    studyDays,
+  );
+
+  const isTodayCompleted = isDayCompleted(
     today,
     startDateStr,
     subjects,
@@ -782,6 +800,7 @@ export default function Dashboard({
           value={`${streak}d`}
           sub={streak > 0 ? "Keep going!" : "Take an exam today"}
           color={streak >= 5 ? "var(--green)" : "var(--ink)"}
+          onClick={!isTodayCompleted ? onNavigateToPractice : undefined}
         />
         <StatCard
           label="Days completed"

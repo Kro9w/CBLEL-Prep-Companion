@@ -20,4 +20,6 @@ public/QBank_IA.txt
 public/QBank_IT.txt
 public/QBank_LOM.txt
 public/QBank_RBU.txt
+public/DDC.txt
+public/LCC.txt
 src-tauri/

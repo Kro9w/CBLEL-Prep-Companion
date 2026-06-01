@@ -1197,6 +1197,7 @@ export default function App() {
             milestones={milestones}
             cycleLength={cycleLength}
             studyDays={studyDays}
+            onNavigateToPractice={() => setActiveTab("practice")}
           />
         )}
         {activeTab === "practice" && <MockExam isRestDay={restDay} />}

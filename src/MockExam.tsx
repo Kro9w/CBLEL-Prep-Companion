@@ -1,7 +1,10 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { loadSubjects } from "./App";
+import { quizCompletedKey } from "./Dashboard";
 
 // ── types
+export type SessionType = "exam" | "quiz" | "custom" | "classification";
+
 type Option = { letter: string; text: string; correct: boolean };
 type Question = {
   number: number;
@@ -32,6 +35,7 @@ type SavedExam = {
   timeTaken: number; // seconds
   mode: SessionMode;
   wrong: WrongItem[];
+  sessionType?: SessionType;
 };
 
 // ── subject short codes
@@ -779,6 +783,7 @@ function PreviousExams() {
 export default function MockExam({ isRestDay }: { isRestDay: boolean }) {
   const [view, setView] = useState<"exam" | "history">("exam");
   const [phase, setPhase] = useState<ExamPhase>("load");
+  const [sessionType, setSessionType] = useState<SessionType>("exam");
   const [questions, setQuestions] = useState<Question[]>([]);
   const [examCode, setExamCode] = useState("");
   const [fileName, setFileName] = useState("");
@@ -786,6 +791,11 @@ export default function MockExam({ isRestDay }: { isRestDay: boolean }) {
   const [mode, setMode] = useState<SessionMode>("end");
   const [dragOver, setDragOver] = useState(false);
   const [showCustom, setShowCustom] = useState(false);
+  const [showClassifications, setShowClassifications] = useState(false);
+  const [classificationType, setClassificationType] = useState<
+    "DDC" | "LCC" | null
+  >(null);
+  const [classificationCount, setClassificationCount] = useState(15);
   const [subjectSelector, setSubjectSelector] = useState<{
     show: boolean;
     count: number;
@@ -879,6 +889,7 @@ export default function MockExam({ isRestDay }: { isRestDay: boolean }) {
       setExamCode(code);
       setFileName(file.name);
       setParseError("");
+      setSessionType("custom");
       setPhase("configure");
     };
     reader.readAsText(file);
@@ -895,7 +906,11 @@ export default function MockExam({ isRestDay }: { isRestDay: boolean }) {
     if (file) handleFile(file);
   }, []);
 
-  async function fetchBuiltIn(subjectShort: string, count: number) {
+  async function fetchBuiltIn(
+    subjectShort: string,
+    count: number,
+    isQuiz: boolean = false,
+  ) {
     try {
       setParseError("");
       const res = await fetch(`QBank_${subjectShort}.txt`);
@@ -922,6 +937,7 @@ export default function MockExam({ isRestDay }: { isRestDay: boolean }) {
       setQuestions(subset);
       setExamCode(code);
       setFileName(`QBank_${subjectShort}.txt`);
+      setSessionType(isQuiz ? "quiz" : "exam");
       setPhase("configure");
       setSubjectSelector({ show: false, count: 0 });
     } catch (err) {
@@ -964,7 +980,13 @@ export default function MockExam({ isRestDay }: { isRestDay: boolean }) {
         return chosen && q.options.find((o) => o.letter === chosen)?.correct;
       }).length;
       const score = Math.round((correct / questions.length) * 100);
-      saveJSON(scoreKey(new Date()), score);
+
+      // Log differently based on session type
+      if (sessionType === "exam") {
+        saveJSON(scoreKey(new Date()), score);
+      } else {
+        saveJSON(quizCompletedKey(new Date()), true);
+      }
 
       const wrong: WrongItem[] = questions
         .map((q, i) => {
@@ -996,6 +1018,7 @@ export default function MockExam({ isRestDay }: { isRestDay: boolean }) {
         timeTaken,
         mode,
         wrong,
+        sessionType,
       };
       setPendingExam(examRecord);
       setPhase("review");
@@ -1021,6 +1044,166 @@ export default function MockExam({ isRestDay }: { isRestDay: boolean }) {
     setElapsed(0);
     setPendingExam(null);
     setSaved(false);
+  }
+
+  async function fetchClassification(
+    type: "DDC" | "LCC",
+    difficulty: "Easy" | "Hard",
+    count: number,
+  ) {
+    try {
+      setParseError("");
+      const filename = `${type}.txt`;
+      const res = await fetch(filename);
+      if (!res.ok) {
+        setParseError(
+          `Could not load ${filename}. Make sure the file exists in the public directory.`,
+        );
+        return;
+      }
+      const text = await res.text();
+
+      const items: { code: string; description: string }[] = [];
+      const lines = text.split("\n").map((l) => l.trim());
+
+      let inEasyHeader = false;
+
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+
+        // Track sections based on hash count to filter for Easy mode
+        if (type === "DDC") {
+          if (line.startsWith("###")) {
+            // It's a 100-division header
+            inEasyHeader = true;
+            // Parse the header itself! The prompt says "we are ONLY working with the numbers preceeded by three hashes"
+            // For example: ### 860 — Spanish & Portuguese Literatures
+            if (difficulty === "Easy") {
+              const match = line.match(/###\s*([0-9]+)\s*—\s*(.+)/);
+              if (match) {
+                items.push({
+                  code: match[1].trim(),
+                  description: match[2].trim(),
+                });
+              }
+            }
+          } else if (line.startsWith("##") && !line.startsWith("###")) {
+            inEasyHeader = false;
+          }
+        } else if (type === "LCC") {
+          if (line.startsWith("##") && !line.startsWith("###")) {
+            inEasyHeader = true;
+            if (difficulty === "Easy") {
+              const match = line.match(/##\s*([A-Z]+)\s*—\s*(.+)/);
+              if (match) {
+                items.push({
+                  code: match[1].trim(),
+                  description: match[2].trim(),
+                });
+              }
+            }
+          } else if (line.startsWith("#")) {
+            inEasyHeader = false;
+          }
+        }
+
+        // If hard mode, parse everything from the markdown tables
+        if (
+          difficulty === "Hard" &&
+          line.startsWith("|") &&
+          !line.includes("---") &&
+          !line.toLowerCase().includes("description")
+        ) {
+          const parts = line.split("|").map((p) => p.trim());
+          if (parts.length >= 3) {
+            const code = parts[1];
+            const description = parts[2];
+            if (
+              code &&
+              description &&
+              !description.toLowerCase().includes("no longer used") &&
+              !description.toLowerCase().includes("unassigned")
+            ) {
+              items.push({ code, description });
+            }
+          }
+        }
+      }
+
+      if (items.length < 4) {
+        setParseError(`Not enough items in ${type}.txt to generate questions.`);
+        return;
+      }
+
+      const generatedQuestions: Question[] = [];
+      // Shuffle items to select questions
+      const shuffledItems = shuffleArray(items);
+      const limit = Math.min(count, shuffledItems.length);
+
+      for (let i = 0; i < limit; i++) {
+        const item = shuffledItems[i];
+        const isAskCode = Math.random() > 0.5;
+
+        let stem = "";
+        let correctText = "";
+
+        if (isAskCode) {
+          stem = `What is the ${type} number/subclass for "${item.description}"?`;
+          correctText = item.code;
+        } else {
+          stem = `What subject does the ${type} number/subclass "${item.code}" represent?`;
+          correctText = item.description;
+        }
+
+        const options: Option[] = [
+          { letter: "A", text: correctText, correct: true },
+        ];
+
+        // Pick 3 random wrong options
+        const wrongItems = shuffleArray(
+          items.filter((x) => x.code !== item.code),
+        ).slice(0, 3);
+        wrongItems.forEach((w, idx) => {
+          options.push({
+            letter: String.fromCharCode(66 + idx), // B, C, D
+            text: isAskCode ? w.code : w.description,
+            correct: false,
+          });
+        });
+
+        // Shuffle options
+        const shuffledOptions = shuffleArray(options).map((opt, idx) => ({
+          ...opt,
+          letter: String.fromCharCode(65 + idx), // A, B, C, D
+        }));
+
+        generatedQuestions.push({
+          number: i + 1,
+          stem,
+          options: shuffledOptions,
+          explanation: `The ${type} classification for "${item.description}" is ${item.code}.`,
+        });
+      }
+
+      setQuestions(generatedQuestions);
+      setExamCode(`${type} ${difficulty} Quiz`);
+      setFileName(filename);
+      setSessionType("classification");
+
+      // Setup immediately and skip configure phase
+      setMode("immediate");
+      setShowClassifications(false);
+      setClassificationType(null);
+      setCurrent(0);
+      setAnswers({});
+      setRevealed({});
+      setPendingExam(null);
+      setSaved(false);
+      setPhase("exam");
+      startTimer();
+    } catch (err) {
+      setParseError("Error fetching classification data: " + String(err));
+    }
   }
 
   // ── computed
@@ -1196,7 +1379,11 @@ export default function MockExam({ isRestDay }: { isRestDay: boolean }) {
                   <button
                     key={subj.short}
                     onClick={() =>
-                      fetchBuiltIn(subj.short, subjectSelector.count)
+                      fetchBuiltIn(
+                        subj.short,
+                        subjectSelector.count,
+                        subjectSelector.count === 15,
+                      )
                     }
                     style={{
                       padding: "16px 20px",
@@ -1231,6 +1418,276 @@ export default function MockExam({ isRestDay }: { isRestDay: boolean }) {
                   </button>
                 ))}
               </div>
+            </div>
+          ) : showClassifications ? (
+            <div>
+              <button
+                onClick={() => {
+                  if (classificationType) {
+                    setClassificationType(null);
+                  } else {
+                    setShowClassifications(false);
+                  }
+                  setParseError("");
+                }}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "var(--ink-muted)",
+                  fontSize: "calc(13px * var(--scale, 1))",
+                  cursor: "pointer",
+                  marginBottom: 16,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 4,
+                }}
+              >
+                ←{" "}
+                {classificationType
+                  ? "Back to Classifications"
+                  : "Back to modes"}
+              </button>
+
+              {!classificationType ? (
+                <div
+                  style={{ display: "flex", flexDirection: "column", gap: 12 }}
+                >
+                  <button
+                    onClick={() => setClassificationType("DDC")}
+                    style={{
+                      padding: "16px 20px",
+                      background: "var(--cream)",
+                      border: "1px solid var(--cream-border)",
+                      borderRadius: "var(--radius)",
+                      cursor: "pointer",
+                      textAlign: "left",
+                      fontFamily: "var(--font-body)",
+                      transition: "background 0.15s, border 0.15s",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                    }}
+                  >
+                    <div>
+                      <div
+                        style={{
+                          fontSize: "calc(15px * var(--scale, 1))",
+                          fontWeight: 500,
+                          color: "var(--ink)",
+                          marginBottom: 4,
+                        }}
+                      >
+                        Dewey Decimal Classification
+                      </div>
+                      <div
+                        style={{
+                          fontSize: "calc(12px * var(--scale, 1))",
+                          color: "var(--ink-muted)",
+                          lineHeight: 1.4,
+                        }}
+                      >
+                        Practice DDC numbers and their corresponding subjects.
+                      </div>
+                    </div>
+                    <div
+                      style={{
+                        fontSize: "calc(18px * var(--scale, 1))",
+                        color: "var(--ink-faint)",
+                      }}
+                    >
+                      →
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => setClassificationType("LCC")}
+                    style={{
+                      padding: "16px 20px",
+                      background: "var(--cream)",
+                      border: "1px solid var(--cream-border)",
+                      borderRadius: "var(--radius)",
+                      cursor: "pointer",
+                      textAlign: "left",
+                      fontFamily: "var(--font-body)",
+                      transition: "background 0.15s, border 0.15s",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                    }}
+                  >
+                    <div>
+                      <div
+                        style={{
+                          fontSize: "calc(15px * var(--scale, 1))",
+                          fontWeight: 500,
+                          color: "var(--ink)",
+                          marginBottom: 4,
+                        }}
+                      >
+                        Library of Congress Classification
+                      </div>
+                      <div
+                        style={{
+                          fontSize: "calc(12px * var(--scale, 1))",
+                          color: "var(--ink-muted)",
+                          lineHeight: 1.4,
+                        }}
+                      >
+                        Practice LCC subclasses and their corresponding
+                        subjects.
+                      </div>
+                    </div>
+                    <div
+                      style={{
+                        fontSize: "calc(18px * var(--scale, 1))",
+                        color: "var(--ink-faint)",
+                      }}
+                    >
+                      →
+                    </div>
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div style={{ marginBottom: 20 }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        marginBottom: 8,
+                        fontSize: "calc(13px * var(--scale, 1))",
+                        fontWeight: 500,
+                        color: "var(--ink)",
+                      }}
+                    >
+                      <span>Number of Questions</span>
+                      <span style={{ color: "var(--accent)" }}>
+                        {classificationCount}
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="1"
+                      max="50"
+                      value={classificationCount}
+                      onChange={(e) =>
+                        setClassificationCount(parseInt(e.target.value))
+                      }
+                      style={{
+                        width: "100%",
+                        cursor: "pointer",
+                        accentColor: "var(--accent)",
+                      }}
+                    />
+                  </div>
+
+                  <div
+                    style={{
+                      fontSize: "calc(13px * var(--scale, 1))",
+                      fontWeight: 500,
+                      color: "var(--ink)",
+                      marginBottom: 12,
+                    }}
+                  >
+                    Select Difficulty
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 12,
+                    }}
+                  >
+                    <button
+                      onClick={() =>
+                        proceedAction(() =>
+                          fetchClassification(
+                            classificationType,
+                            "Easy",
+                            classificationCount,
+                          ),
+                        )
+                      }
+                      style={{
+                        padding: "16px 20px",
+                        background: "var(--cream)",
+                        border: "1px solid var(--cream-border)",
+                        borderRadius: "var(--radius)",
+                        cursor: "pointer",
+                        textAlign: "left",
+                        fontFamily: "var(--font-body)",
+                        transition: "background 0.15s, border 0.15s",
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: "calc(15px * var(--scale, 1))",
+                          fontWeight: 500,
+                          color: "var(--ink)",
+                          marginBottom: 4,
+                        }}
+                      >
+                        Easy
+                      </div>
+                      <div
+                        style={{
+                          fontSize: "calc(12px * var(--scale, 1))",
+                          color: "var(--ink-muted)",
+                          lineHeight: 1.4,
+                        }}
+                      >
+                        {classificationType === "DDC"
+                          ? "100 Divisions"
+                          : "21 Main Classes/Letters"}
+                      </div>
+                    </button>
+
+                    <button
+                      onClick={() =>
+                        proceedAction(() =>
+                          fetchClassification(
+                            classificationType,
+                            "Hard",
+                            classificationCount,
+                          ),
+                        )
+                      }
+                      style={{
+                        padding: "16px 20px",
+                        background: "var(--cream)",
+                        border: "1px solid var(--cream-border)",
+                        borderRadius: "var(--radius)",
+                        cursor: "pointer",
+                        textAlign: "left",
+                        fontFamily: "var(--font-body)",
+                        transition: "background 0.15s, border 0.15s",
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: "calc(15px * var(--scale, 1))",
+                          fontWeight: 500,
+                          color: "var(--ink)",
+                          marginBottom: 4,
+                        }}
+                      >
+                        Hard
+                      </div>
+                      <div
+                        style={{
+                          fontSize: "calc(12px * var(--scale, 1))",
+                          color: "var(--ink-muted)",
+                          lineHeight: 1.4,
+                        }}
+                      >
+                        {classificationType === "DDC"
+                          ? "1000 Divisions"
+                          : "250 Subclasses"}
+                      </div>
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           ) : !showCustom ? (
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -1320,6 +1777,56 @@ export default function MockExam({ isRestDay }: { isRestDay: boolean }) {
                     }}
                   >
                     100 randomized items to simulate the real thing.
+                  </div>
+                </div>
+                <div
+                  style={{
+                    fontSize: "calc(18px * var(--scale, 1))",
+                    color: "var(--ink-faint)",
+                  }}
+                >
+                  →
+                </div>
+              </button>
+
+              <button
+                onClick={() =>
+                  proceedAction(() => {
+                    setShowClassifications(true);
+                    setParseError("");
+                  })
+                }
+                style={{
+                  padding: "16px 20px",
+                  background: "var(--cream)",
+                  border: "1px solid var(--cream-border)",
+                  borderRadius: "var(--radius)",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  fontFamily: "var(--font-body)",
+                  transition: "background 0.15s, border 0.15s",
+                }}
+              >
+                <div style={{ textAlign: "left" }}>
+                  <div
+                    style={{
+                      fontSize: "calc(15px * var(--scale, 1))",
+                      fontWeight: 500,
+                      color: "var(--ink)",
+                      marginBottom: 4,
+                    }}
+                  >
+                    Classifications
+                  </div>
+                  <div
+                    style={{
+                      fontSize: "calc(12px * var(--scale, 1))",
+                      color: "var(--ink-muted)",
+                    }}
+                  >
+                    Practice your knowledge on DDC and LCC.
                   </div>
                 </div>
                 <div
@@ -2207,77 +2714,81 @@ Y: Lean management (derived from the Toyota Production System)...`}</pre>
                   color: "var(--ink-faint)",
                 }}
               >
-                Score auto-logged to dashboard
+                {sessionType === "exam"
+                  ? "Score auto-logged to dashboard"
+                  : "Score not logged (Practice Mode)"}
               </div>
             </div>
           </div>
 
           {/* save prompt */}
-          <div
-            style={{
-              background: "var(--cream)",
-              border: "1px solid var(--cream-border)",
-              borderRadius: "var(--radius)",
-              padding: "14px 16px",
-              marginBottom: 20,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: 12,
-            }}
-          >
-            <div>
-              <div
-                style={{
-                  fontSize: "calc(13px * var(--scale, 1))",
-                  fontWeight: 500,
-                  color: "var(--ink)",
-                  marginBottom: 2,
-                }}
-              >
-                Save this exam result?
+          {sessionType === "exam" && (
+            <div
+              style={{
+                background: "var(--cream)",
+                border: "1px solid var(--cream-border)",
+                borderRadius: "var(--radius)",
+                padding: "14px 16px",
+                marginBottom: 20,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 12,
+              }}
+            >
+              <div>
+                <div
+                  style={{
+                    fontSize: "calc(13px * var(--scale, 1))",
+                    fontWeight: 500,
+                    color: "var(--ink)",
+                    marginBottom: 2,
+                  }}
+                >
+                  Save this exam result?
+                </div>
+                <div
+                  style={{
+                    fontSize: "calc(11px * var(--scale, 1))",
+                    color: "var(--ink-faint)",
+                  }}
+                >
+                  Stores score, time taken, date, and all wrong answers for
+                  review later.
+                </div>
               </div>
-              <div
-                style={{
-                  fontSize: "calc(11px * var(--scale, 1))",
-                  color: "var(--ink-faint)",
-                }}
-              >
-                Stores score, time taken, date, and all wrong answers for review
-                later.
-              </div>
+              {saved ? (
+                <div
+                  style={{
+                    fontSize: "calc(12px * var(--scale, 1))",
+                    color: "var(--green)",
+                    fontWeight: 500,
+                    flexShrink: 0,
+                  }}
+                >
+                  ✓ Saved
+                </div>
+              ) : (
+                <button
+                  onClick={saveExam}
+                  style={{
+                    padding: "8px 18px",
+                    fontSize: "calc(13px * var(--scale, 1))",
+                    fontWeight: 500,
+                    background: "var(--accent)",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "var(--radius-sm)",
+                    cursor: "pointer",
+                    fontFamily: "var(--font-body)",
+                    flexShrink: 0,
+                  }}
+                >
+                  Save
+                </button>
+              )}
             </div>
-            {saved ? (
-              <div
-                style={{
-                  fontSize: "calc(12px * var(--scale, 1))",
-                  color: "var(--green)",
-                  fontWeight: 500,
-                  flexShrink: 0,
-                }}
-              >
-                ✓ Saved
-              </div>
-            ) : (
-              <button
-                onClick={saveExam}
-                style={{
-                  padding: "8px 18px",
-                  fontSize: "calc(13px * var(--scale, 1))",
-                  fontWeight: 500,
-                  background: "var(--accent)",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "var(--radius-sm)",
-                  cursor: "pointer",
-                  fontFamily: "var(--font-body)",
-                  flexShrink: 0,
-                }}
-              >
-                Save
-              </button>
-            )}
-          </div>
+          )}
 
           {/* wrong answers */}
           {wrongItems.length > 0 && (
@@ -2337,23 +2848,25 @@ Y: Lean management (derived from the Toyota Production System)...`}</pre>
             >
               Retake exam
             </button>
-            <button
-              onClick={() => setPhase("configure")}
-              style={{
-                flex: 1,
-                padding: "10px 0",
-                fontSize: "calc(13px * var(--scale, 1))",
-                fontWeight: 500,
-                background: "var(--cream-dark)",
-                color: "var(--ink-muted)",
-                border: "1px solid var(--cream-border)",
-                borderRadius: "var(--radius-sm)",
-                cursor: "pointer",
-                fontFamily: "var(--font-body)",
-              }}
-            >
-              Change settings
-            </button>
+            {sessionType !== "classification" && (
+              <button
+                onClick={() => setPhase("configure")}
+                style={{
+                  flex: 1,
+                  padding: "10px 0",
+                  fontSize: "calc(13px * var(--scale, 1))",
+                  fontWeight: 500,
+                  background: "var(--cream-dark)",
+                  color: "var(--ink-muted)",
+                  border: "1px solid var(--cream-border)",
+                  borderRadius: "var(--radius-sm)",
+                  cursor: "pointer",
+                  fontFamily: "var(--font-body)",
+                }}
+              >
+                Change settings
+              </button>
+            )}
             <button
               onClick={reset}
               style={{
