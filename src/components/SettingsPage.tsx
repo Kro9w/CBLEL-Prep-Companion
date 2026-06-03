@@ -1,6 +1,10 @@
-import React from "react";
+import React, { useState } from "react";
+import packageJson from "../../package.json";
 
 export const SettingsPage: React.FC<{
+  updateAvailable: boolean;
+  latestRelease: any;
+  onOpenUpdateModal: () => void;
   darkMode: boolean;
   setDarkMode: (val: boolean) => void;
   simpleFont: boolean;
@@ -12,6 +16,9 @@ export const SettingsPage: React.FC<{
   enablePomodoro: boolean;
   setEnablePomodoro: (val: boolean) => void;
 }> = ({
+  updateAvailable,
+  latestRelease,
+  onOpenUpdateModal,
   darkMode,
   setDarkMode,
   simpleFont,
@@ -23,6 +30,67 @@ export const SettingsPage: React.FC<{
   enablePomodoro,
   setEnablePomodoro,
 }) => {
+  const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
+  const [updateMessage, setUpdateMessage] = useState<string | null>(null);
+
+  const handleManualCheck = async () => {
+    // If we already know an update is available via App context, just open the modal.
+    if (updateAvailable) {
+      onOpenUpdateModal();
+      return;
+    }
+
+    setIsCheckingUpdate(true);
+    setUpdateMessage(null);
+    try {
+      const response = await fetch(
+        "https://api.github.com/repos/Kro9w/CBLEL-Prep-Companion/releases/latest",
+      );
+      if (!response.ok) throw new Error("Failed to fetch latest release");
+      const data = await response.json();
+
+      const current = packageJson.version;
+      const remote = data.tag_name.replace(/^v/, "");
+
+      const currentParts = current.split(".").map(Number);
+      const remoteParts = remote.split(".").map(Number);
+
+      let isNewer = false;
+      for (
+        let i = 0;
+        i < Math.max(currentParts.length, remoteParts.length);
+        i++
+      ) {
+        const c = currentParts[i] || 0;
+        const r = remoteParts[i] || 0;
+        if (r > c) {
+          isNewer = true;
+          break;
+        }
+        if (r < c) break;
+      }
+
+      if (isNewer) {
+        setUpdateMessage(`Update available: ${data.tag_name}`);
+        // We trigger a full reload so App.tsx can mount the modal natively,
+        // or they can just restart the app. The modal relies on App state,
+        // so setting it here would require a callback.
+        // Since we already pass down `updateAvailable`, if they were online, it would be true.
+        // Let's just instruct them:
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
+      } else {
+        setUpdateMessage("You are on the latest version.");
+      }
+    } catch (e) {
+      setUpdateMessage("Failed to check for updates.");
+    } finally {
+      setIsCheckingUpdate(false);
+      setTimeout(() => setUpdateMessage(null), 4000);
+    }
+  };
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       <h2
@@ -239,6 +307,83 @@ export const SettingsPage: React.FC<{
             />
           </button>
         </div>
+      </div>
+
+      {/* App Info & Updates */}
+      <div
+        style={{
+          padding: "16px",
+          background: "var(--cream-dark)",
+          borderRadius: "var(--radius)",
+          display: "flex",
+          flexDirection: "column",
+          gap: 12,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <div>
+            <div
+              style={{
+                fontSize: "calc(16px * var(--scale, 1))",
+                fontWeight: 500,
+                color: "var(--ink)",
+              }}
+            >
+              App Version
+            </div>
+            <div
+              style={{
+                fontSize: "calc(13px * var(--scale, 1))",
+                color: "var(--ink-muted)",
+                marginTop: 2,
+              }}
+            >
+              v{packageJson.version}
+            </div>
+          </div>
+          <button
+            onClick={handleManualCheck}
+            disabled={isCheckingUpdate}
+            style={{
+              padding: "8px 12px",
+              fontSize: "calc(13px * var(--scale, 1))",
+              borderRadius: "var(--radius-sm)",
+              border: updateAvailable
+                ? "none"
+                : "1px solid var(--cream-border)",
+              background: updateAvailable ? "var(--accent)" : "var(--cream)",
+              color: updateAvailable ? "white" : "var(--ink)",
+              cursor: isCheckingUpdate ? "not-allowed" : "pointer",
+              fontFamily: "var(--font-body)",
+              opacity: isCheckingUpdate ? 0.7 : 1,
+            }}
+          >
+            {isCheckingUpdate
+              ? "Checking..."
+              : updateAvailable
+                ? "Update Available"
+                : "Check for Updates"}
+          </button>
+        </div>
+        {updateMessage && !updateAvailable && (
+          <div
+            style={{
+              fontSize: "calc(13px * var(--scale, 1))",
+              color: updateMessage.includes("Update available")
+                ? "var(--accent)"
+                : "var(--ink-muted)",
+              marginTop: 4,
+            }}
+          >
+            {updateMessage}
+          </div>
+        )}
       </div>
 
       {/* Font Size */}

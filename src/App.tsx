@@ -8,7 +8,9 @@ import { BottomNav } from "./components/BottomNav";
 import { MoreSheet } from "./components/MoreSheet";
 import { SettingsPage } from "./components/SettingsPage";
 import { StudyFeed } from "./components/StudyFeed";
+import { AutoUpdater } from "./components/AutoUpdater";
 import { loadJSON, saveJSON } from "./utils/storage";
+import packageJson from "../package.json";
 
 // ── default milestones
 const DEFAULT_MILESTONES = [
@@ -220,6 +222,52 @@ function deletedKey(d: Date) {
 // ── app
 export default function App() {
   // Config state
+  const [updateAvailable, setUpdateAvailable] = useState(false);
+  const [latestRelease, setLatestRelease] = useState<any>(null);
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+
+  useEffect(() => {
+    const checkUpdate = async () => {
+      try {
+        const response = await fetch(
+          "https://api.github.com/repos/Kro9w/CBLEL-Prep-Companion/releases/latest",
+        );
+        if (!response.ok) return;
+        const data = await response.json();
+
+        const currentParts = packageJson.version.split(".").map(Number);
+        const remoteParts = data.tag_name
+          .replace(/^v/, "")
+          .split(".")
+          .map(Number);
+
+        let isNewer = false;
+        for (
+          let i = 0;
+          i < Math.max(currentParts.length, remoteParts.length);
+          i++
+        ) {
+          const c = currentParts[i] || 0;
+          const r = remoteParts[i] || 0;
+          if (r > c) {
+            isNewer = true;
+            break;
+          }
+          if (r < c) break;
+        }
+
+        if (isNewer) {
+          setLatestRelease(data);
+          setUpdateAvailable(true);
+          setShowUpdateModal(true);
+        }
+      } catch (e) {
+        console.error("Failed to check for updates", e);
+      }
+    };
+    checkUpdate();
+  }, []);
+
   const [userName, setUserName] = useState<string | null>(() =>
     loadJSON("userName", null),
   );
@@ -548,6 +596,11 @@ export default function App() {
         transition: "background 0.2s, color 0.2s",
       }}
     >
+      <AutoUpdater
+        show={showUpdateModal}
+        latestRelease={latestRelease}
+        onClose={() => setShowUpdateModal(false)}
+      />
       {!tourSeen && (
         <TourOverlay
           onDismiss={() => {
@@ -593,6 +646,24 @@ export default function App() {
             </div>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {updateAvailable && !showUpdateModal && (
+              <button
+                onClick={() => setShowUpdateModal(true)}
+                style={{
+                  fontSize: "calc(11px * var(--scale, 1))",
+                  fontWeight: 500,
+                  padding: "2px 8px",
+                  background: "var(--accent)",
+                  color: "white",
+                  border: "none",
+                  borderRadius: 4,
+                  cursor: "pointer",
+                  fontFamily: "var(--font-body)",
+                }}
+              >
+                Update available
+              </button>
+            )}
             {!restDay && (
               <span
                 style={{
@@ -2033,6 +2104,9 @@ export default function App() {
         {/* settings */}
         {activeTab === "settings" && (
           <SettingsPage
+            updateAvailable={updateAvailable}
+            latestRelease={latestRelease}
+            onOpenUpdateModal={() => setShowUpdateModal(true)}
             darkMode={darkMode}
             setDarkMode={setDarkMode}
             simpleFont={simpleFont}

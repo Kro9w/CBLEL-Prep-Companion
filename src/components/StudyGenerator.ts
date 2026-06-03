@@ -1,4 +1,5 @@
 import { Question } from "../MockExam";
+import { loadJSON, updateRecentlySeenQuestions } from "../utils/storage";
 
 const SUBJECT_SHORTS = ["LOM", "RBU", "CC", "IA", "CM", "IT"];
 
@@ -187,12 +188,23 @@ async function generateStandardQuestion(): Promise<StudyQuestion> {
 
     if (questions.length === 0) throw new Error("No questions found");
 
-    const q = questions[Math.floor(Math.random() * questions.length)];
+    const recent = loadJSON<string[]>("recentlySeenQuestions", []);
+    let q = questions[Math.floor(Math.random() * questions.length)];
+    
+    // Try up to 10 times to find a question we haven't seen recently
+    for (let attempts = 0; attempts < 10; attempts++) {
+      if (!recent.includes(q.stem)) break;
+      q = questions[Math.floor(Math.random() * questions.length)];
+    }
 
-    q.options = q.options.map((opt: any, i: number) => ({
-      ...opt,
-      letter: String.fromCharCode(65 + i),
-    }));
+    updateRecentlySeenQuestions([q.stem]);
+
+    q.options = q.options
+      .sort(() => 0.5 - Math.random())
+      .map((opt: any, i: number) => ({
+        ...opt,
+        letter: String.fromCharCode(65 + i),
+      }));
 
     return {
       ...q,

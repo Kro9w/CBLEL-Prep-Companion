@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { loadSubjects } from "./App";
 import { quizCompletedKey } from "./Dashboard";
+import { loadJSON, updateRecentlySeenQuestions } from "./utils/storage";
 
 // ── types
 export type SessionType = "exam" | "quiz" | "custom" | "classification";
@@ -154,8 +155,24 @@ function processQuestionsSubset(
   allQuestions: Question[],
   count: number,
 ): Question[] {
-  // Shuffle all questions, take the subset, then map to assign new letters/numbers
-  const subset = shuffleArray(allQuestions).slice(0, count);
+  const recent = loadJSON<string[]>("recentlySeenQuestions", []);
+
+  // First shuffle everything completely randomly
+  let shuffled = shuffleArray(allQuestions);
+
+  // Then sort so that questions NOT in 'recent' come first.
+  // Sort is stable-ish in JS, but returning -1 moves it up.
+  shuffled.sort((a, b) => {
+    const aSeen = recent.includes(a.stem);
+    const bSeen = recent.includes(b.stem);
+    if (!aSeen && bSeen) return -1;
+    if (aSeen && !bSeen) return 1;
+    return 0;
+  });
+
+  const subset = shuffled.slice(0, count);
+  updateRecentlySeenQuestions(subset.map((q) => q.stem));
+
   return subset.map((q, idx) => {
     // Shuffle options while re-assigning letters
     const shuffledOptions = shuffleArray(q.options).map((opt, oIdx) => {
