@@ -563,9 +563,12 @@ function PreviousExams() {
         const matchedSubject = allSubjects.find((s) =>
           exam.examCode.toUpperCase().startsWith(s.short),
         );
-        const displayName = matchedSubject
+        let displayName = matchedSubject
           ? `${matchedSubject.name} · ${exam.examCode}`
           : exam.examCode;
+        if (exam.sessionType === "custom") {
+          displayName = `Custom Exam · ${exam.examCode}`;
+        }
 
         return (
           <div
@@ -808,11 +811,15 @@ export default function MockExam({ isRestDay }: { isRestDay: boolean }) {
   const [mode, setMode] = useState<SessionMode>("end");
   const [dragOver, setDragOver] = useState(false);
   const [showCustom, setShowCustom] = useState(false);
+  const [showFinishConfirm, setShowFinishConfirm] = useState(false);
   const [showClassifications, setShowClassifications] = useState(false);
   const [classificationType, setClassificationType] = useState<
     "DDC" | "LCC" | null
   >(null);
   const [classificationCount, setClassificationCount] = useState(15);
+  const [showUploadErrorModal, setShowUploadErrorModal] = useState<
+    string | null
+  >(null);
   const [subjectSelector, setSubjectSelector] = useState<{
     show: boolean;
     count: number;
@@ -888,7 +895,7 @@ export default function MockExam({ isRestDay }: { isRestDay: boolean }) {
 
   function handleFile(file: File) {
     if (!file.name.endsWith(".txt")) {
-      setParseError("Please upload a .txt file.");
+      setShowUploadErrorModal("Please upload a .txt file.");
       return;
     }
     const reader = new FileReader();
@@ -896,16 +903,27 @@ export default function MockExam({ isRestDay }: { isRestDay: boolean }) {
       const text = e.target?.result as string;
       const code = parseExamCode(text);
       const parsed = parseQuestions(text);
-      if (parsed.length === 0) {
-        setParseError("No questions found. Check the format guide below.");
+
+      if (!code) {
+        setShowUploadErrorModal(
+          "Invalid format: Missing or invalid exam code. Ensure the file contains a subject code at the top (e.g., LOM_1).",
+        );
         return;
       }
+      if (parsed.length !== 100) {
+        setShowUploadErrorModal(
+          `Invalid format: A custom mock exam must contain exactly 100 questions. Found ${parsed.length} questions.`,
+        );
+        return;
+      }
+
       // Shuffle options for custom uploads as well so AI generated questions aren't predictable
       const shuffledParsed = processQuestionsSubset(parsed, parsed.length);
       setQuestions(shuffledParsed);
       setExamCode(code);
       setFileName(file.name);
       setParseError("");
+      // Treat custom exams as exams for saving and stats
       setSessionType("custom");
       setPhase("configure");
     };
@@ -982,7 +1000,7 @@ export default function MockExam({ isRestDay }: { isRestDay: boolean }) {
 
   function next() {
     if (current < questions.length - 1) setCurrent((c) => c + 1);
-    else finishExam(elapsed);
+    else setShowFinishConfirm(true);
   }
   function prev() {
     if (current > 0) setCurrent((c) => c - 1);
@@ -999,7 +1017,7 @@ export default function MockExam({ isRestDay }: { isRestDay: boolean }) {
       const score = Math.round((correct / questions.length) * 100);
 
       // Log differently based on session type
-      if (sessionType === "exam") {
+      if (sessionType === "exam" || sessionType === "custom") {
         saveJSON(scoreKey(new Date()), score);
       } else {
         saveJSON(quizCompletedKey(new Date()), true);
@@ -1302,6 +1320,80 @@ export default function MockExam({ isRestDay }: { isRestDay: boolean }) {
     </div>
   );
 
+  // ── upload error modal (global to component for "load" phase logic which handles file selection)
+  const uploadErrorModal = showUploadErrorModal && (
+    <div
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: "rgba(0, 0, 0, 0.4)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 9999,
+        padding: "24px",
+      }}
+    >
+      <div
+        style={{
+          background: "var(--cream)",
+          border: "1px solid var(--cream-border)",
+          borderRadius: "var(--radius)",
+          padding: "24px",
+          width: "100%",
+          maxWidth: 320,
+          boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
+        }}
+      >
+        <h3
+          style={{
+            margin: "0 0 8px 0",
+            fontSize: "calc(16px * var(--scale, 1))",
+            fontWeight: 600,
+            color: "#8B3A3A",
+          }}
+        >
+          Upload Error
+        </h3>
+        <p
+          style={{
+            margin: "0 0 20px 0",
+            fontSize: "calc(13px * var(--scale, 1))",
+            color: "var(--ink-muted)",
+            lineHeight: 1.4,
+          }}
+        >
+          {showUploadErrorModal}
+        </p>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "flex-end",
+          }}
+        >
+          <button
+            onClick={() => setShowUploadErrorModal(null)}
+            style={{
+              padding: "8px 16px",
+              background: "var(--cream-dark)",
+              border: "1px solid var(--cream-border)",
+              borderRadius: "var(--radius-sm)",
+              color: "var(--ink)",
+              fontSize: "calc(13px * var(--scale, 1))",
+              fontWeight: 500,
+              cursor: "pointer",
+            }}
+          >
+            Got it
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
   // ── render: history
   if (view === "history")
     return (
@@ -1317,6 +1409,7 @@ export default function MockExam({ isRestDay }: { isRestDay: boolean }) {
   if (phase === "load")
     return (
       <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+        {uploadErrorModal}
         {tabBar}
         <div
           style={{
@@ -2592,7 +2685,7 @@ Y: Lean management (derived from the Toyota Production System)...`}</pre>
             ← Previous
           </button>
           <button
-            onClick={() => finishExam(elapsed)}
+            onClick={() => setShowFinishConfirm(true)}
             style={{
               ...navBtn,
               background: "var(--cream-dark)",
@@ -2604,7 +2697,7 @@ Y: Lean management (derived from the Toyota Production System)...`}</pre>
             Submit early
           </button>
           <button
-            onClick={isLast ? () => finishExam(elapsed) : next}
+            onClick={isLast ? () => setShowFinishConfirm(true) : next}
             disabled={mode !== "end" && !answers[current]}
             style={{
               ...navBtn,
@@ -2617,6 +2710,98 @@ Y: Lean management (derived from the Toyota Production System)...`}</pre>
             {isLast ? "Finish exam" : "Next →"}
           </button>
         </div>
+
+        {showFinishConfirm && (
+          <div
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: "rgba(0, 0, 0, 0.4)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 9999,
+              padding: "24px",
+            }}
+          >
+            <div
+              style={{
+                background: "var(--cream)",
+                border: "1px solid var(--cream-border)",
+                borderRadius: "var(--radius)",
+                padding: "24px",
+                width: "100%",
+                maxWidth: 320,
+                boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
+              }}
+            >
+              <h3
+                style={{
+                  margin: "0 0 8px 0",
+                  fontSize: "calc(16px * var(--scale, 1))",
+                  fontWeight: 600,
+                  color: "var(--ink)",
+                }}
+              >
+                Finish Exam?
+              </h3>
+              <p
+                style={{
+                  margin: "0 0 20px 0",
+                  fontSize: "calc(13px * var(--scale, 1))",
+                  color: "var(--ink-muted)",
+                  lineHeight: 1.4,
+                }}
+              >
+                Are you sure you want to finish and submit your answers?
+              </p>
+              <div
+                style={{
+                  display: "flex",
+                  gap: "12px",
+                  justifyContent: "flex-end",
+                }}
+              >
+                <button
+                  onClick={() => setShowFinishConfirm(false)}
+                  style={{
+                    padding: "8px 16px",
+                    background: "var(--cream-dark)",
+                    border: "1px solid var(--cream-border)",
+                    borderRadius: "var(--radius-sm)",
+                    color: "var(--ink)",
+                    fontSize: "calc(13px * var(--scale, 1))",
+                    fontWeight: 500,
+                    cursor: "pointer",
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    setShowFinishConfirm(false);
+                    finishExam(elapsed);
+                  }}
+                  style={{
+                    padding: "8px 16px",
+                    background: "var(--accent)",
+                    border: "none",
+                    borderRadius: "var(--radius-sm)",
+                    color: "white",
+                    fontSize: "calc(13px * var(--scale, 1))",
+                    fontWeight: 500,
+                    cursor: "pointer",
+                  }}
+                >
+                  Submit
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -2731,7 +2916,7 @@ Y: Lean management (derived from the Toyota Production System)...`}</pre>
                   color: "var(--ink-faint)",
                 }}
               >
-                {sessionType === "exam"
+                {sessionType === "exam" || sessionType === "custom"
                   ? "Score auto-logged to dashboard"
                   : "Score not logged (Practice Mode)"}
               </div>
@@ -2739,7 +2924,7 @@ Y: Lean management (derived from the Toyota Production System)...`}</pre>
           </div>
 
           {/* save prompt */}
-          {sessionType === "exam" && (
+          {(sessionType === "exam" || sessionType === "custom") && (
             <div
               style={{
                 background: "var(--cream)",

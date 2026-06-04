@@ -270,7 +270,7 @@ function StatCard({
   onClick,
 }: {
   label: string;
-  value: string | number;
+  value: React.ReactNode;
   sub?: string;
   color?: string;
   onClick?: () => void;
@@ -797,7 +797,11 @@ export default function Dashboard({
         />
         <StatCard
           label="Study streak"
-          value={`${streak}d`}
+          value={
+            <span style={{ opacity: isTodayCompleted ? 1 : 0.4 }}>
+              {isTodayCompleted ? streak : 0}d
+            </span>
+          }
           sub={streak > 0 ? "Keep going!" : "Take an exam today"}
           color={streak >= 5 ? "var(--green)" : "var(--ink)"}
           onClick={!isTodayCompleted ? onNavigateToPractice : undefined}

@@ -190,7 +190,7 @@ async function generateStandardQuestion(): Promise<StudyQuestion> {
 
     const recent = loadJSON<string[]>("recentlySeenQuestions", []);
     let q = questions[Math.floor(Math.random() * questions.length)];
-    
+
     // Try up to 10 times to find a question we haven't seen recently
     for (let attempts = 0; attempts < 10; attempts++) {
       if (!recent.includes(q.stem)) break;
