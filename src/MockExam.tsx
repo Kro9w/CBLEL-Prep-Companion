@@ -497,14 +497,20 @@ function WrongReview({ wrong }: { wrong: WrongItem[] }) {
 }
 
 // ── previous exams view
-function PreviousExams() {
-  const [exams, setExams] = useState<SavedExam[]>(loadSavedExams);
+function PreviousExams({ filterType }: { filterType: "exam" | "quiz" }) {
+  const [allExams, setAllExams] = useState<SavedExam[]>(loadSavedExams);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
+  const exams = allExams.filter((e) =>
+    filterType === "exam"
+      ? e.sessionType === "exam" || e.sessionType === "custom"
+      : e.sessionType === "quiz",
+  );
+
   function deleteExam(id: string) {
-    const next = exams.filter((e) => e.id !== id);
-    setExams(next);
+    const next = allExams.filter((e) => e.id !== id);
+    setAllExams(next);
     try {
       localStorage.setItem(EXAMS_KEY, JSON.stringify(next));
     } catch {}
@@ -525,7 +531,9 @@ function PreviousExams() {
             marginBottom: 8,
           }}
         >
-          No exams saved yet.
+          {filterType === "exam"
+            ? "No exams saved yet."
+            : "No quizzes saved yet."}
         </div>
         <div
           style={{
@@ -533,7 +541,8 @@ function PreviousExams() {
             color: "var(--ink-muted)",
           }}
         >
-          After finishing an exam, save it to see it here.
+          After finishing {filterType === "exam" ? "an exam" : "a quiz"}, save
+          it to see it here.
         </div>
       </div>
     );
@@ -554,7 +563,8 @@ function PreviousExams() {
           marginBottom: 4,
         }}
       >
-        {exams.length} exam{exams.length !== 1 ? "s" : ""} saved
+        {exams.length} {filterType === "exam" ? "exam" : "quiz"}
+        {exams.length !== 1 ? (filterType === "exam" ? "s" : "zes") : ""} saved
       </div>
       {exams.map((exam) => {
         const isOpen = expanded === exam.id;
@@ -568,6 +578,10 @@ function PreviousExams() {
           : exam.examCode;
         if (exam.sessionType === "custom") {
           displayName = `Custom Exam · ${exam.examCode}`;
+        } else if (exam.sessionType === "quiz") {
+          displayName = matchedSubject
+            ? `${matchedSubject.name} · Quiz`
+            : `${exam.examCode}`;
         }
 
         return (
@@ -801,7 +815,9 @@ function PreviousExams() {
 
 // ── main component
 export default function MockExam({ isRestDay }: { isRestDay: boolean }) {
-  const [view, setView] = useState<"exam" | "history">("exam");
+  const [view, setView] = useState<
+    "exam" | "history-exams" | "history-quizzes"
+  >("exam");
   const [phase, setPhase] = useState<ExamPhase>("load");
   const [sessionType, setSessionType] = useState<SessionType>("exam");
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -1296,7 +1312,7 @@ export default function MockExam({ isRestDay }: { isRestDay: boolean }) {
         padding: "0 24px",
       }}
     >
-      {(["exam", "history"] as const).map((t) => (
+      {(["exam", "history-exams", "history-quizzes"] as const).map((t) => (
         <button
           key={t}
           onClick={() => setView(t)}
@@ -1314,7 +1330,11 @@ export default function MockExam({ isRestDay }: { isRestDay: boolean }) {
             textTransform: "capitalize",
           }}
         >
-          {t === "history" ? "Previous Exams" : "Exam"}
+          {t === "history-exams"
+            ? "Previous Exams"
+            : t === "history-quizzes"
+              ? "Previous Quizzes"
+              : "Exam"}
         </button>
       ))}
     </div>
@@ -1395,12 +1415,14 @@ export default function MockExam({ isRestDay }: { isRestDay: boolean }) {
   );
 
   // ── render: history
-  if (view === "history")
+  if (view === "history-exams" || view === "history-quizzes")
     return (
       <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
         {tabBar}
         <div style={{ flex: 1, overflowY: "auto" }}>
-          <PreviousExams />
+          <PreviousExams
+            filterType={view === "history-exams" ? "exam" : "quiz"}
+          />
         </div>
       </div>
     );
@@ -2924,7 +2946,9 @@ Y: Lean management (derived from the Toyota Production System)...`}</pre>
           </div>
 
           {/* save prompt */}
-          {(sessionType === "exam" || sessionType === "custom") && (
+          {(sessionType === "exam" ||
+            sessionType === "custom" ||
+            sessionType === "quiz") && (
             <div
               style={{
                 background: "var(--cream)",
@@ -2947,7 +2971,7 @@ Y: Lean management (derived from the Toyota Production System)...`}</pre>
                     marginBottom: 2,
                   }}
                 >
-                  Save this exam result?
+                  Save this {sessionType === "quiz" ? "quiz" : "exam"} result?
                 </div>
                 <div
                   style={{
