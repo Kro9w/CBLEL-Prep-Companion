@@ -5,7 +5,7 @@ const SUBJECT_SHORTS = ["LOM", "RBU", "CC", "IA", "CM", "IT"];
 
 export type StudyQuestion = Question & {
   type: "standard" | "classification";
-  classificationType?: "DDC" | "LCC";
+  classificationType?: "DDC" | "LCC" | "MARC";
   subject?: string;
   answeredLetter?: string;
 };
@@ -25,13 +25,182 @@ export async function generateQuestion(): Promise<StudyQuestion> {
   const isClassification = Math.random() < 0.65;
 
   if (isClassification) {
-    const classType = Math.random() < 0.5 ? "DDC" : "LCC";
+    const types = ["DDC", "LCC", "MARC"];
+    const classType = types[Math.floor(Math.random() * types.length)];
     const isEasy = Math.random() < 0.5;
 
     try {
       const text = await fetchFile(`${classType}.txt`);
-      const items: { code: string; description: string }[] = [];
       const lines = text.split("\n").map((l) => l.trim());
+
+      if (classType === "MARC") {
+        const marcTags: { code: string; description: string }[] = [];
+        const marcSubfields: {
+          tagCode: string;
+          tagDesc: string;
+          code: string;
+          description: string;
+        }[] = [];
+
+        let currentMarcTag: { code: string; description: string } | null = null;
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i];
+          const tagMatch = line.match(/^(\d{3})\s*=\s*(.+)$/);
+          if (tagMatch) {
+            currentMarcTag = {
+              code: tagMatch[1].trim(),
+              description: tagMatch[2].trim(),
+            };
+            marcTags.push(currentMarcTag);
+          } else if (line.startsWith("$") && currentMarcTag) {
+            const subMatch = line.match(/^(\$[a-z0-9])\s*=\s*(.+)$/);
+            if (subMatch) {
+              marcSubfields.push({
+                tagCode: currentMarcTag.code,
+                tagDesc: currentMarcTag.description,
+                code: subMatch[1].trim(),
+                description: subMatch[2].trim(),
+              });
+            }
+          }
+        }
+
+        if (marcTags.length < 4) throw new Error("Not enough MARC tags");
+
+        let qType = Math.random() > 0.5 ? "Tags" : "Subfields";
+        if (qType === "Subfields" && marcSubfields.length === 0) {
+          qType = "Tags";
+        }
+
+        let stem = "";
+        let correctText = "";
+        let explanation = "";
+        const wrongOptions: string[] = [];
+
+        if (qType === "Tags") {
+          const isAskCode = Math.random() > 0.5;
+          const target = marcTags[Math.floor(Math.random() * marcTags.length)];
+
+          if (isAskCode) {
+            stem = `Which MARC tag is used for "${target.description}"?`;
+            correctText = target.code;
+            explanation = `MARC tag ${target.code} represents ${target.description}.`;
+            const others = marcTags
+              .filter((t) => t.code !== target.code)
+              .sort(() => 0.5 - Math.random());
+            wrongOptions.push(...others.slice(0, 3).map((w) => w.code));
+          } else {
+            stem = `What does MARC tag "${target.code}" represent?`;
+            correctText = target.description;
+            explanation = `MARC tag ${target.code} represents ${target.description}.`;
+            const others = marcTags
+              .filter((t) => t.code !== target.code)
+              .sort(() => 0.5 - Math.random());
+            wrongOptions.push(...others.slice(0, 3).map((w) => w.description));
+          }
+        } else {
+          // Subfields
+          const target =
+            marcSubfields[Math.floor(Math.random() * marcSubfields.length)];
+          const isAskCode = Math.random() > 0.5;
+
+          if (isAskCode) {
+            stem = `Under MARC tag ${target.tagCode} (${target.tagDesc}), which subfield code is used for "${target.description}"?`;
+            correctText = target.code;
+            explanation = `Under MARC tag ${target.tagCode}, the subfield code for "${target.description}" is ${target.code}.`;
+
+            let others = marcSubfields.filter(
+              (s) => s.tagCode === target.tagCode && s.code !== target.code,
+            );
+            if (others.length < 3) {
+              const extras = marcSubfields.filter(
+                (s) => s.tagCode !== target.tagCode && s.code !== target.code,
+              );
+              others = others.concat(extras.sort(() => 0.5 - Math.random()));
+            }
+            const wrongItems = others.sort(() => 0.5 - Math.random());
+            const uniqueWrongs = Array.from(
+              new Set(wrongItems.map((w) => w.code)),
+            );
+            while (uniqueWrongs.length < 3) {
+              const extras = marcSubfields
+                .filter(
+                  (s) =>
+                    s.code !== target.code && !uniqueWrongs.includes(s.code),
+                )
+                .sort(() => 0.5 - Math.random());
+              if (extras.length > 0) uniqueWrongs.push(extras[0].code);
+              else break;
+            }
+            wrongOptions.push(...uniqueWrongs.slice(0, 3));
+          } else {
+            stem = `Under MARC tag ${target.tagCode} (${target.tagDesc}), what does subfield code "${target.code}" represent?`;
+            correctText = target.description;
+            explanation = `Under MARC tag ${target.tagCode}, subfield code ${target.code} represents "${target.description}".`;
+
+            let others = marcSubfields.filter(
+              (s) =>
+                s.tagCode === target.tagCode &&
+                s.description !== target.description,
+            );
+            if (others.length < 3) {
+              const extras = marcSubfields.filter(
+                (s) =>
+                  s.tagCode !== target.tagCode &&
+                  s.description !== target.description,
+              );
+              others = others.concat(extras.sort(() => 0.5 - Math.random()));
+            }
+            const wrongItems = others.sort(() => 0.5 - Math.random());
+            const uniqueWrongs = Array.from(
+              new Set(wrongItems.map((w) => w.description)),
+            );
+            while (uniqueWrongs.length < 3) {
+              const extras = marcSubfields
+                .filter(
+                  (s) =>
+                    s.description !== target.description &&
+                    !uniqueWrongs.includes(s.description),
+                )
+                .sort(() => 0.5 - Math.random());
+              if (extras.length > 0) uniqueWrongs.push(extras[0].description);
+              else break;
+            }
+            wrongOptions.push(...uniqueWrongs.slice(0, 3));
+          }
+        }
+
+        while (wrongOptions.length < 3) {
+          wrongOptions.push(`Distractor ${wrongOptions.length + 1}`);
+        }
+
+        const options = [{ letter: "A", text: correctText, correct: true }];
+        wrongOptions.slice(0, 3).forEach((wText, idx) => {
+          options.push({
+            letter: String.fromCharCode(66 + idx),
+            text: wText,
+            correct: false,
+          });
+        });
+
+        const finalOptions = options
+          .sort(() => 0.5 - Math.random())
+          .map((opt, i) => ({
+            ...opt,
+            letter: String.fromCharCode(65 + i),
+          }));
+
+        return {
+          number: 1,
+          stem,
+          options: finalOptions,
+          explanation,
+          type: "classification",
+          classificationType: classType as any,
+        };
+      }
+
+      const items: { code: string; description: string }[] = [];
 
       let inEasyHeader = false;
       for (let i = 0; i < lines.length; i++) {
@@ -73,8 +242,6 @@ export async function generateQuestion(): Promise<StudyQuestion> {
               .map((c) => c.trim())
               .filter(Boolean);
 
-            // Strictly check formatting: cols[0] shouldn't have ---
-            // It also must not be a table header like "No.", "Subclass", "Number", "Class"
             if (
               cols.length >= 2 &&
               !cols[0].includes("---") &&
@@ -122,7 +289,7 @@ export async function generateQuestion(): Promise<StudyQuestion> {
         options: finalOptions,
         explanation: `The ${classType} classification for "${target.description}" is ${target.code}.`,
         type: "classification",
-        classificationType: classType,
+        classificationType: classType as "DDC" | "LCC" | "MARC",
       };
     } catch (e) {
       console.error(e);

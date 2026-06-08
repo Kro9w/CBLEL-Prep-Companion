@@ -34,7 +34,6 @@ export const SettingsPage: React.FC<{
   const [updateMessage, setUpdateMessage] = useState<string | null>(null);
 
   const handleManualCheck = async () => {
-    // If we already know an update is available via App context, just open the modal.
     if (updateAvailable) {
       onOpenUpdateModal();
       return;
@@ -72,11 +71,6 @@ export const SettingsPage: React.FC<{
 
       if (isNewer) {
         setUpdateMessage(`Update available: ${data.tag_name}`);
-        // We trigger a full reload so App.tsx can mount the modal natively,
-        // or they can just restart the app. The modal relies on App state,
-        // so setting it here would require a callback.
-        // Since we already pass down `updateAvailable`, if they were online, it would be true.
-        // Let's just instruct them:
         setTimeout(() => {
           window.location.reload();
         }, 1500);

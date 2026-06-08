@@ -22,7 +22,6 @@ const Particles: React.FC<{ color: string; count: number }> = ({
   useEffect(() => {
     const newParticles = Array.from({ length: count }).map((_, i) => {
       const angle = Math.random() * Math.PI * 2;
-      // Distance can shoot anywhere from 80px up to 250px outwards in all directions
       const distance = 80 + Math.random() * 170;
       return {
         id: i,
@@ -145,7 +144,6 @@ export const StudyFeed: React.FC<StudyFeedProps> = ({
 
     Array.from(el.children).forEach((child, index) => {
       const htmlChild = child as HTMLElement;
-      // We only care about study-feed-item nodes
       if (htmlChild.classList.contains("study-feed-item")) {
         const childCenter = htmlChild.offsetTop + htmlChild.clientHeight / 2;
         const distance = Math.abs(containerCenter - childCenter);
@@ -157,12 +155,9 @@ export const StudyFeed: React.FC<StudyFeedProps> = ({
     });
 
     if (closestIndex !== activeIndex) {
-      // If we scrolled forward, check if we skipped a question
       if (closestIndex > activeIndex) {
-        // We only care about the immediately previous question that we just left
         const prevQuestion = questions[activeIndex];
         if (prevQuestion && !prevQuestion.answeredLetter) {
-          // If the previous question wasn't answered, it's a skip, break the streak.
           onAnswer(false);
         }
       }
@@ -197,14 +192,12 @@ export const StudyFeed: React.FC<StudyFeedProps> = ({
   const [compliment, setCompliment] = useState<string | null>(null);
 
   useEffect(() => {
-    // Check if a >0 streak was just broken
     if (studyStreak === 0 && prevStreakRef.current > 0) {
       setDyingStreak({
         score: prevStreakRef.current,
         color: getStreakColor(prevStreakRef.current) || "var(--sienna)",
         compliment,
       });
-      // Clear it out after the animation finishes
       setTimeout(() => setDyingStreak(null), 600);
     }
     prevStreakRef.current = studyStreak;
@@ -397,7 +390,6 @@ const StudyItem: React.FC<StudyItemProps> = ({
     onAnswer(letter, correct);
 
     if (correct) {
-      // Temporarily show the shine if this answer hit a checkpoint
       const nextStreak = studyStreak + 1;
       const willBeCheckpoint =
         enableStreak &&
@@ -414,9 +406,9 @@ const StudyItem: React.FC<StudyItemProps> = ({
 
   const isDDC = question.classificationType === "DDC";
   const isLCC = question.classificationType === "LCC";
+  const isMARC = question.classificationType === "MARC";
   const isClassification = question.type === "classification";
 
-  // Calculate next streak for color anticipation
   const nextStreak = isCorrect ? studyStreak : studyStreak;
   const showStreakEffects = enableStreak && nextStreak >= 10;
   const streakColor = showStreakEffects ? getStreakColor(nextStreak) : null;
@@ -510,7 +502,9 @@ const StudyItem: React.FC<StudyItemProps> = ({
               {isClassification
                 ? isDDC
                   ? "DDC Practice"
-                  : "LCC Practice"
+                  : isLCC
+                    ? "LCC Practice"
+                    : "MARC Practice"
                 : `Subject: ${question.subject}`}
             </span>
           </div>

@@ -56,7 +56,6 @@ function parseExamCode(raw: string): string {
       .split("\n")
       .map((l) => l.trim())
       .find((l) => l.length > 0) || "";
-  // match something like LOM_1 or RBU_3 at the start of file
   const match = firstLine.match(/^([A-Z]{2,6}_\d+)$/i);
   return match ? match[1].toUpperCase() : "";
 }
@@ -69,15 +68,11 @@ function parseQuestions(raw: string): Question[] {
   const questions: Question[] = [];
   let current: (Partial<Question> & { options: Option[] }) | null = null;
 
-  // New format: Q. ..., O. ..., *O. ..., Y: ...
-  // Old format: 1. ..., A. ..., *B. ...
   const questionReOld = /^(\d+)[.)]\s+(.+)$/;
   const questionReNew = /^Q\.\s+(.+)$/i;
   const optionReOld = /^(\*?)([A-Da-d])[.)]\s+(.+)$/;
   const optionReNew = /^(\*?)O\.\s+(.+)$/i;
   const explanationRe = /^Y:\s+(.+)$/i;
-
-  // skip the exam code line
   const examCodeRe = /^[A-Z]{2,6}_\d+$/i;
 
   let questionCounter = 1;
@@ -108,7 +103,6 @@ function parseQuestions(raw: string): Question[] {
       if (oMatchOld) {
         letter = oMatchOld[2].toUpperCase();
       } else {
-        // Assign A, B, C, D dynamically based on existing options
         const letters = ["A", "B", "C", "D"];
         letter = letters[current.options.length] || "?";
       }
@@ -157,11 +151,8 @@ function processQuestionsSubset(
 ): Question[] {
   const recent = loadJSON<string[]>("recentlySeenQuestions", []);
 
-  // First shuffle everything completely randomly
+  // Shuffle everything completely randomly
   let shuffled = shuffleArray(allQuestions);
-
-  // Then sort so that questions NOT in 'recent' come first.
-  // Sort is stable-ish in JS, but returning -1 moves it up.
   shuffled.sort((a, b) => {
     const aSeen = recent.includes(a.stem);
     const bSeen = recent.includes(b.stem);
@@ -298,7 +289,7 @@ function ProgressBar({ current, total }: { current: number; total: number }) {
 function TimerDisplay({ elapsed, limit }: { elapsed: number; limit: number }) {
   const remaining = limit - elapsed;
   const pct = elapsed / limit;
-  const urgent = remaining <= 300; // last 5 min
+  const urgent = remaining <= 300;
   const critical = remaining <= 60;
   const color = critical
     ? "#8B3A3A"
@@ -830,7 +821,7 @@ export default function MockExam({ isRestDay }: { isRestDay: boolean }) {
   const [showFinishConfirm, setShowFinishConfirm] = useState(false);
   const [showClassifications, setShowClassifications] = useState(false);
   const [classificationType, setClassificationType] = useState<
-    "DDC" | "LCC" | null
+    "DDC" | "LCC" | "MARC" | null
   >(null);
   const [classificationCount, setClassificationCount] = useState(15);
   const [showUploadErrorModal, setShowUploadErrorModal] = useState<
@@ -933,13 +924,11 @@ export default function MockExam({ isRestDay }: { isRestDay: boolean }) {
         return;
       }
 
-      // Shuffle options for custom uploads as well so AI generated questions aren't predictable
       const shuffledParsed = processQuestionsSubset(parsed, parsed.length);
       setQuestions(shuffledParsed);
       setExamCode(code);
       setFileName(file.name);
       setParseError("");
-      // Treat custom exams as exams for saving and stats
       setSessionType("custom");
       setPhase("configure");
     };
@@ -1098,8 +1087,8 @@ export default function MockExam({ isRestDay }: { isRestDay: boolean }) {
   }
 
   async function fetchClassification(
-    type: "DDC" | "LCC",
-    difficulty: "Easy" | "Hard",
+    type: "DDC" | "LCC" | "MARC",
+    difficulty: "Easy" | "Hard" | "Tags" | "Subfields" | "Both",
     count: number,
   ) {
     try {
@@ -1115,20 +1104,47 @@ export default function MockExam({ isRestDay }: { isRestDay: boolean }) {
       const text = await res.text();
 
       const items: { code: string; description: string }[] = [];
+      const marcTags: { code: string; description: string }[] = [];
+      const marcSubfields: {
+        tagCode: string;
+        tagDesc: string;
+        code: string;
+        description: string;
+      }[] = [];
+
       const lines = text.split("\n").map((l) => l.trim());
 
       let inEasyHeader = false;
+      let currentMarcTag: { code: string; description: string } | null = null;
 
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
 
-        // Track sections based on hash count to filter for Easy mode
-        if (type === "DDC") {
+        if (type === "MARC") {
+          // Parse MARC tags e.g. "100 = Main Entry – Personal Name"
+          const tagMatch = line.match(/^(\d{3})\s*=\s*(.+)$/);
+          if (tagMatch) {
+            currentMarcTag = {
+              code: tagMatch[1].trim(),
+              description: tagMatch[2].trim(),
+            };
+            marcTags.push(currentMarcTag);
+          } else if (line.startsWith("$") && currentMarcTag) {
+            // Parse MARC subfields e.g. "$a = Personal name"
+            const subMatch = line.match(/^(\$[a-z0-9])\s*=\s*(.+)$/);
+            if (subMatch) {
+              marcSubfields.push({
+                tagCode: currentMarcTag.code,
+                tagDesc: currentMarcTag.description,
+                code: subMatch[1].trim(),
+                description: subMatch[2].trim(),
+              });
+            }
+          }
+        } else if (type === "DDC") {
           if (line.startsWith("###")) {
             // It's a 100-division header
             inEasyHeader = true;
-            // Parse the header itself! The prompt says "we are ONLY working with the numbers preceeded by three hashes"
-            // For example: ### 860 — Spanish & Portuguese Literatures
             if (difficulty === "Easy") {
               const match = line.match(/###\s*([0-9]+)\s*—\s*(.+)/);
               if (match) {
@@ -1181,59 +1197,214 @@ export default function MockExam({ isRestDay }: { isRestDay: boolean }) {
         }
       }
 
-      if (items.length < 4) {
-        setParseError(`Not enough items in ${type}.txt to generate questions.`);
-        return;
-      }
-
       const generatedQuestions: Question[] = [];
-      // Shuffle items to select questions
-      const shuffledItems = shuffleArray(items);
-      const limit = Math.min(count, shuffledItems.length);
 
-      for (let i = 0; i < limit; i++) {
-        const item = shuffledItems[i];
-        const isAskCode = Math.random() > 0.5;
-
-        let stem = "";
-        let correctText = "";
-
-        if (isAskCode) {
-          stem = `What is the ${type} subclass for "${item.description}"?`;
-          correctText = item.code;
-        } else {
-          stem = `What subject does the ${type} subclass "${item.code}" represent?`;
-          correctText = item.description;
+      if (type === "MARC") {
+        if (marcTags.length < 4) {
+          setParseError(
+            `Not enough MARC tags in ${type}.txt to generate questions.`,
+          );
+          return;
         }
 
-        const options: Option[] = [
-          { letter: "A", text: correctText, correct: true },
-        ];
+        // Generate MARC questions
+        for (let i = 0; i < count; i++) {
+          let qType: "Tags" | "Subfields" = "Tags";
+          if (difficulty === "Both") {
+            qType = Math.random() > 0.5 ? "Tags" : "Subfields";
+          } else if (difficulty === "Subfields") {
+            qType = "Subfields";
+          }
 
-        // Pick 3 random wrong options
-        const wrongItems = shuffleArray(
-          items.filter((x) => x.code !== item.code),
-        ).slice(0, 3);
-        wrongItems.forEach((w, idx) => {
-          options.push({
-            letter: String.fromCharCode(66 + idx), // B, C, D
-            text: isAskCode ? w.code : w.description,
-            correct: false,
+          // If Subfields mode is chosen but there are no subfields at all, fallback to Tags
+          if (qType === "Subfields" && marcSubfields.length === 0) {
+            qType = "Tags";
+          }
+
+          let stem = "";
+          let correctText = "";
+          let explanation = "";
+          const wrongOptions: string[] = [];
+
+          if (qType === "Tags") {
+            const isAskCode = Math.random() > 0.5;
+            const target =
+              marcTags[Math.floor(Math.random() * marcTags.length)];
+
+            if (isAskCode) {
+              stem = `Which MARC tag is used for "${target.description}"?`;
+              correctText = target.code;
+              explanation = `MARC tag ${target.code} represents ${target.description}.`;
+              const wrongItems = shuffleArray(
+                marcTags.filter((t) => t.code !== target.code),
+              ).slice(0, 3);
+              wrongOptions.push(...wrongItems.map((w) => w.code));
+            } else {
+              stem = `What does MARC tag "${target.code}" represent?`;
+              correctText = target.description;
+              explanation = `MARC tag ${target.code} represents ${target.description}.`;
+              const wrongItems = shuffleArray(
+                marcTags.filter((t) => t.code !== target.code),
+              ).slice(0, 3);
+              wrongOptions.push(...wrongItems.map((w) => w.description));
+            }
+          } else {
+            // Subfields mode
+            const target =
+              marcSubfields[Math.floor(Math.random() * marcSubfields.length)];
+            const isAskCode = Math.random() > 0.5;
+
+            if (isAskCode) {
+              stem = `Under MARC tag ${target.tagCode} (${target.tagDesc}), which subfield code is used for "${target.description}"?`;
+              correctText = target.code;
+              explanation = `Under MARC tag ${target.tagCode}, the subfield code for "${target.description}" is ${target.code}.`;
+
+              let others = marcSubfields.filter(
+                (s) => s.tagCode === target.tagCode && s.code !== target.code,
+              );
+              if (others.length < 3) {
+                const extras = marcSubfields.filter(
+                  (s) => s.tagCode !== target.tagCode && s.code !== target.code,
+                );
+                others = others.concat(shuffleArray(extras));
+              }
+              const wrongItems = shuffleArray(others).slice(0, 3);
+              // Ensure uniqueness in options
+              const uniqueWrongs = Array.from(
+                new Set(wrongItems.map((w) => w.code)),
+              );
+              while (uniqueWrongs.length < 3) {
+                const extras = shuffleArray(
+                  marcSubfields.filter(
+                    (s) =>
+                      s.code !== target.code && !uniqueWrongs.includes(s.code),
+                  ),
+                );
+                if (extras.length > 0) uniqueWrongs.push(extras[0].code);
+                else break; // Fallback safety
+              }
+              wrongOptions.push(...uniqueWrongs.slice(0, 3));
+            } else {
+              stem = `Under MARC tag ${target.tagCode} (${target.tagDesc}), what does subfield code "${target.code}" represent?`;
+              correctText = target.description;
+              explanation = `Under MARC tag ${target.tagCode}, subfield code ${target.code} represents "${target.description}".`;
+
+              let others = marcSubfields.filter(
+                (s) =>
+                  s.tagCode === target.tagCode &&
+                  s.description !== target.description,
+              );
+              if (others.length < 3) {
+                const extras = marcSubfields.filter(
+                  (s) =>
+                    s.tagCode !== target.tagCode &&
+                    s.description !== target.description,
+                );
+                others = others.concat(shuffleArray(extras));
+              }
+              const wrongItems = shuffleArray(others).slice(0, 3);
+              // Ensure uniqueness in options
+              const uniqueWrongs = Array.from(
+                new Set(wrongItems.map((w) => w.description)),
+              );
+              while (uniqueWrongs.length < 3) {
+                const extras = shuffleArray(
+                  marcSubfields.filter(
+                    (s) =>
+                      s.description !== target.description &&
+                      !uniqueWrongs.includes(s.description),
+                  ),
+                );
+                if (extras.length > 0) uniqueWrongs.push(extras[0].description);
+                else break; // Fallback safety
+              }
+              wrongOptions.push(...uniqueWrongs.slice(0, 3));
+            }
+          }
+
+          while (wrongOptions.length < 3) {
+            wrongOptions.push(`Distractor ${wrongOptions.length + 1}`);
+          }
+
+          const options: Option[] = [
+            { letter: "A", text: correctText, correct: true },
+          ];
+          wrongOptions.slice(0, 3).forEach((wText, idx) => {
+            options.push({
+              letter: String.fromCharCode(66 + idx),
+              text: wText,
+              correct: false,
+            });
           });
-        });
 
-        // Shuffle options
-        const shuffledOptions = shuffleArray(options).map((opt, idx) => ({
-          ...opt,
-          letter: String.fromCharCode(65 + idx), // A, B, C, D
-        }));
+          const shuffledOptions = shuffleArray(options).map((opt, idx) => ({
+            ...opt,
+            letter: String.fromCharCode(65 + idx),
+          }));
 
-        generatedQuestions.push({
-          number: i + 1,
-          stem,
-          options: shuffledOptions,
-          explanation: `The ${type} classification for "${item.description}" is ${item.code}.`,
-        });
+          generatedQuestions.push({
+            number: i + 1,
+            stem,
+            options: shuffledOptions,
+            explanation,
+          });
+        }
+      } else {
+        if (items.length < 4) {
+          setParseError(
+            `Not enough items in ${type}.txt to generate questions.`,
+          );
+          return;
+        }
+
+        // Shuffle items to select questions for DDC/LCC
+        const shuffledItems = shuffleArray(items);
+        const limit = Math.min(count, shuffledItems.length);
+
+        for (let i = 0; i < limit; i++) {
+          const item = shuffledItems[i];
+          const isAskCode = Math.random() > 0.5;
+
+          let stem = "";
+          let correctText = "";
+
+          if (isAskCode) {
+            stem = `What is the ${type} subclass for "${item.description}"?`;
+            correctText = item.code;
+          } else {
+            stem = `What subject does the ${type} subclass "${item.code}" represent?`;
+            correctText = item.description;
+          }
+
+          const options: Option[] = [
+            { letter: "A", text: correctText, correct: true },
+          ];
+
+          // Pick 3 random wrong options
+          const wrongItems = shuffleArray(
+            items.filter((x) => x.code !== item.code),
+          ).slice(0, 3);
+          wrongItems.forEach((w, idx) => {
+            options.push({
+              letter: String.fromCharCode(66 + idx), // B, C, D
+              text: isAskCode ? w.code : w.description,
+              correct: false,
+            });
+          });
+
+          // Shuffle options
+          const shuffledOptions = shuffleArray(options).map((opt, idx) => ({
+            ...opt,
+            letter: String.fromCharCode(65 + idx), // A, B, C, D
+          }));
+
+          generatedQuestions.push({
+            number: i + 1,
+            stem,
+            options: shuffledOptions,
+            explanation: `The ${type} classification for "${item.description}" is ${item.code}.`,
+          });
+        }
       }
 
       setQuestions(generatedQuestions);
@@ -1294,7 +1465,7 @@ export default function MockExam({ isRestDay }: { isRestDay: boolean }) {
 
   // LLE TOS weighting logic
   const allSubjects = loadSubjects();
-  // Find subject match by checking if the examCode starts with the subject's short code (e.g., LOM_1 -> LOM)
+
   const matchedSubject = allSubjects.find((s) =>
     examCode.toUpperCase().startsWith(s.short),
   );
@@ -1721,103 +1892,238 @@ export default function MockExam({ isRestDay }: { isRestDay: boolean }) {
                       marginBottom: 12,
                     }}
                   >
-                    Select Difficulty
+                    Select{" "}
+                    {classificationType === "MARC" ? "Mode" : "Difficulty"}
                   </div>
-                  <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 12,
-                    }}
-                  >
-                    <button
-                      onClick={() =>
-                        proceedAction(() =>
-                          fetchClassification(
-                            classificationType,
-                            "Easy",
-                            classificationCount,
-                          ),
-                        )
-                      }
+                  {classificationType === "MARC" ? (
+                    <div
                       style={{
-                        padding: "16px 20px",
-                        background: "var(--cream)",
-                        border: "1px solid var(--cream-border)",
-                        borderRadius: "var(--radius)",
-                        cursor: "pointer",
-                        textAlign: "left",
-                        fontFamily: "var(--font-body)",
-                        transition: "background 0.15s, border 0.15s",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 12,
                       }}
                     >
-                      <div
+                      <button
+                        onClick={() =>
+                          proceedAction(() =>
+                            fetchClassification(
+                              classificationType,
+                              "Tags",
+                              classificationCount,
+                            ),
+                          )
+                        }
                         style={{
-                          fontSize: "calc(15px * var(--scale, 1))",
-                          fontWeight: 500,
-                          color: "var(--ink)",
-                          marginBottom: 4,
+                          padding: "16px 20px",
+                          background: "var(--cream)",
+                          border: "1px solid var(--cream-border)",
+                          borderRadius: "var(--radius)",
+                          cursor: "pointer",
+                          textAlign: "left",
+                          fontFamily: "var(--font-body)",
+                          transition: "background 0.15s, border 0.15s",
                         }}
                       >
-                        Easy
-                      </div>
-                      <div
+                        <div
+                          style={{
+                            fontSize: "calc(15px * var(--scale, 1))",
+                            fontWeight: 500,
+                            color: "var(--ink)",
+                            marginBottom: 4,
+                          }}
+                        >
+                          MARC Tags
+                        </div>
+                        <div
+                          style={{
+                            fontSize: "calc(12px * var(--scale, 1))",
+                            color: "var(--ink-muted)",
+                            lineHeight: 1.4,
+                          }}
+                        >
+                          Practice identifying tags and their meanings.
+                        </div>
+                      </button>
+                      <button
+                        onClick={() =>
+                          proceedAction(() =>
+                            fetchClassification(
+                              classificationType,
+                              "Subfields",
+                              classificationCount,
+                            ),
+                          )
+                        }
                         style={{
-                          fontSize: "calc(12px * var(--scale, 1))",
-                          color: "var(--ink-muted)",
-                          lineHeight: 1.4,
+                          padding: "16px 20px",
+                          background: "var(--cream)",
+                          border: "1px solid var(--cream-border)",
+                          borderRadius: "var(--radius)",
+                          cursor: "pointer",
+                          textAlign: "left",
+                          fontFamily: "var(--font-body)",
+                          transition: "background 0.15s, border 0.15s",
                         }}
                       >
-                        {classificationType === "DDC"
-                          ? "100 Divisions"
-                          : "21 Main Classes/Letters"}
-                      </div>
-                    </button>
+                        <div
+                          style={{
+                            fontSize: "calc(15px * var(--scale, 1))",
+                            fontWeight: 500,
+                            color: "var(--ink)",
+                            marginBottom: 4,
+                          }}
+                        >
+                          Subfields
+                        </div>
+                        <div
+                          style={{
+                            fontSize: "calc(12px * var(--scale, 1))",
+                            color: "var(--ink-muted)",
+                            lineHeight: 1.4,
+                          }}
+                        >
+                          Practice identifying subfields given a tag.
+                        </div>
+                      </button>
+                      <button
+                        onClick={() =>
+                          proceedAction(() =>
+                            fetchClassification(
+                              classificationType,
+                              "Both",
+                              classificationCount,
+                            ),
+                          )
+                        }
+                        style={{
+                          padding: "16px 20px",
+                          background: "var(--cream)",
+                          border: "1px solid var(--cream-border)",
+                          borderRadius: "var(--radius)",
+                          cursor: "pointer",
+                          textAlign: "left",
+                          fontFamily: "var(--font-body)",
+                          transition: "background 0.15s, border 0.15s",
+                        }}
+                      >
+                        <div
+                          style={{
+                            fontSize: "calc(15px * var(--scale, 1))",
+                            fontWeight: 500,
+                            color: "var(--ink)",
+                            marginBottom: 4,
+                          }}
+                        >
+                          Both
+                        </div>
+                        <div
+                          style={{
+                            fontSize: "calc(12px * var(--scale, 1))",
+                            color: "var(--ink-muted)",
+                            lineHeight: 1.4,
+                          }}
+                        >
+                          A mix of tags and subfield questions.
+                        </div>
+                      </button>
+                    </div>
+                  ) : (
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 12,
+                      }}
+                    >
+                      <button
+                        onClick={() =>
+                          proceedAction(() =>
+                            fetchClassification(
+                              classificationType,
+                              "Easy",
+                              classificationCount,
+                            ),
+                          )
+                        }
+                        style={{
+                          padding: "16px 20px",
+                          background: "var(--cream)",
+                          border: "1px solid var(--cream-border)",
+                          borderRadius: "var(--radius)",
+                          cursor: "pointer",
+                          textAlign: "left",
+                          fontFamily: "var(--font-body)",
+                          transition: "background 0.15s, border 0.15s",
+                        }}
+                      >
+                        <div
+                          style={{
+                            fontSize: "calc(15px * var(--scale, 1))",
+                            fontWeight: 500,
+                            color: "var(--ink)",
+                            marginBottom: 4,
+                          }}
+                        >
+                          Easy
+                        </div>
+                        <div
+                          style={{
+                            fontSize: "calc(12px * var(--scale, 1))",
+                            color: "var(--ink-muted)",
+                            lineHeight: 1.4,
+                          }}
+                        >
+                          {classificationType === "DDC"
+                            ? "100 Divisions"
+                            : "21 Main Classes/Letters"}
+                        </div>
+                      </button>
 
-                    <button
-                      onClick={() =>
-                        proceedAction(() =>
-                          fetchClassification(
-                            classificationType,
-                            "Hard",
-                            classificationCount,
-                          ),
-                        )
-                      }
-                      style={{
-                        padding: "16px 20px",
-                        background: "var(--cream)",
-                        border: "1px solid var(--cream-border)",
-                        borderRadius: "var(--radius)",
-                        cursor: "pointer",
-                        textAlign: "left",
-                        fontFamily: "var(--font-body)",
-                        transition: "background 0.15s, border 0.15s",
-                      }}
-                    >
-                      <div
+                      <button
+                        onClick={() =>
+                          proceedAction(() =>
+                            fetchClassification(
+                              classificationType,
+                              "Hard",
+                              classificationCount,
+                            ),
+                          )
+                        }
                         style={{
-                          fontSize: "calc(15px * var(--scale, 1))",
-                          fontWeight: 500,
-                          color: "var(--ink)",
-                          marginBottom: 4,
+                          padding: "16px 20px",
+                          background: "var(--cream)",
+                          border: "1px solid var(--cream-border)",
+                          borderRadius: "var(--radius)",
+                          cursor: "pointer",
+                          textAlign: "left",
+                          fontFamily: "var(--font-body)",
+                          transition: "background 0.15s, border 0.15s",
                         }}
                       >
-                        Hard
-                      </div>
-                      <div
-                        style={{
-                          fontSize: "calc(12px * var(--scale, 1))",
-                          color: "var(--ink-muted)",
-                          lineHeight: 1.4,
-                        }}
-                      >
-                        {classificationType === "DDC"
-                          ? "1000 Divisions"
-                          : "250 Subclasses"}
-                      </div>
-                    </button>
-                  </div>
+                        <div
+                          style={{
+                            fontSize: "calc(15px * var(--scale, 1))",
+                            fontWeight: 500,
+                            color: "var(--ink)",
+                            marginBottom: 4,
+                          }}
+                        >
+                          Hard
+                        </div>
+                        <div
+                          style={{
+                            fontSize: "calc(12px * var(--scale, 1))",
+                            color: "var(--ink-muted)",
+                            lineHeight: 1.4,
+                          }}
+                        >
+                          {classificationType === "DDC"
+                            ? "1000 Divisions"
+                            : "250 Subclasses"}
+                        </div>
+                      </button>
+                    </div>
+                  )}
                 </>
               )}
             </div>
@@ -1851,7 +2157,7 @@ export default function MockExam({ isRestDay }: { isRestDay: boolean }) {
                       marginBottom: 4,
                     }}
                   >
-                    Take a Quiz
+                    Quiz
                   </div>
                   <div
                     style={{
@@ -1900,7 +2206,7 @@ export default function MockExam({ isRestDay }: { isRestDay: boolean }) {
                       marginBottom: 4,
                     }}
                   >
-                    Take a Mock Exam
+                    Mock Exam
                   </div>
                   <div
                     style={{
@@ -1920,6 +2226,14 @@ export default function MockExam({ isRestDay }: { isRestDay: boolean }) {
                   →
                 </div>
               </button>
+
+              <div
+                style={{
+                  height: 1,
+                  background: "var(--cream-border)",
+                  margin: "12px 0",
+                }}
+              />
 
               <button
                 onClick={() =>
@@ -1958,7 +2272,58 @@ export default function MockExam({ isRestDay }: { isRestDay: boolean }) {
                       color: "var(--ink-muted)",
                     }}
                   >
-                    Practice your knowledge on DDC and LCC.
+                    Practice your knowledge on DDC, LCC.
+                  </div>
+                </div>
+                <div
+                  style={{
+                    fontSize: "calc(18px * var(--scale, 1))",
+                    color: "var(--ink-faint)",
+                  }}
+                >
+                  →
+                </div>
+              </button>
+
+              <button
+                onClick={() =>
+                  proceedAction(() => {
+                    setShowClassifications(true);
+                    setClassificationType("MARC");
+                    setParseError("");
+                  })
+                }
+                style={{
+                  padding: "16px 20px",
+                  background: "var(--cream)",
+                  border: "1px solid var(--cream-border)",
+                  borderRadius: "var(--radius)",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  fontFamily: "var(--font-body)",
+                  transition: "background 0.15s, border 0.15s",
+                }}
+              >
+                <div style={{ textAlign: "left" }}>
+                  <div
+                    style={{
+                      fontSize: "calc(15px * var(--scale, 1))",
+                      fontWeight: 500,
+                      color: "var(--ink)",
+                      marginBottom: 4,
+                    }}
+                  >
+                    MARC Practice
+                  </div>
+                  <div
+                    style={{
+                      fontSize: "calc(12px * var(--scale, 1))",
+                      color: "var(--ink-muted)",
+                    }}
+                  >
+                    Practice MARC tags and subfields.
                   </div>
                 </div>
                 <div
