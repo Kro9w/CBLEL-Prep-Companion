@@ -17,7 +17,7 @@ const DEFAULT_MILESTONES = [
   {
     id: "registration",
     label: "Board Registration",
-    dateStr: "2026-06-05",
+    dateStr: "June 05 - August 04",
     color: "var(--green)",
     bg: "var(--green-bg)",
   },
@@ -766,7 +766,7 @@ export default function App() {
             )}
             <div className="desktop-settings" style={{ position: "relative" }}>
               <button
-                onClick={() => setShowSettings((s) => !s)}
+                onClick={() => setShowSettings(true)}
                 title="Settings"
                 style={{
                   width: 32,
@@ -789,224 +789,89 @@ export default function App() {
               </button>
               {showSettings && (
                 <div
+                  className="fade-in"
+                  onClick={() => setShowSettings(false)}
                   style={{
-                    position: "absolute",
-                    top: "100%",
+                    position: "fixed",
+                    top: 0,
+                    left: 0,
                     right: 0,
-                    marginTop: 8,
-                    width: 220,
-                    background: "var(--cream)",
-                    border: "1px solid var(--cream-border)",
-                    borderRadius: "var(--radius)",
-                    boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
-                    padding: "16px",
-                    zIndex: 1000,
+                    bottom: 0,
+                    background: "rgba(0,0,0,0.4)",
+                    backdropFilter: "blur(4px)",
+                    WebkitBackdropFilter: "blur(4px)",
+                    zIndex: 9999,
                     display: "flex",
-                    flexDirection: "column",
-                    gap: 16,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    padding: 24,
                   }}
                 >
-                  {/* Theme Toggle */}
                   <div
+                    onClick={(e) => e.stopPropagation()}
                     style={{
+                      width: "100%",
+                      maxWidth: 500,
+                      maxHeight: "90vh",
+                      background: "var(--cream)",
+                      borderRadius: "var(--radius)",
+                      border: "1px solid var(--cream-border)",
+                      boxShadow: "0 8px 32px rgba(0,0,0,0.15)",
+                      overflowY: "auto",
                       display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
+                      flexDirection: "column",
+                      position: "relative",
                     }}
                   >
-                    <span
-                      style={{
-                        fontSize: "calc(13px * var(--scale, 1))",
-                        fontWeight: 500,
-                        color: "var(--ink)",
-                      }}
-                    >
-                      Dark Mode
-                    </span>
                     <button
-                      onClick={() => setDarkMode(!darkMode)}
+                      onClick={() => setShowSettings(false)}
                       style={{
-                        width: 40,
-                        height: 22,
-                        borderRadius: 12,
-                        background: darkMode
-                          ? "var(--accent)"
-                          : "var(--cream-dark)",
-                        border: "1px solid var(--cream-border)",
-                        position: "relative",
+                        position: "absolute",
+                        top: 16,
+                        right: 16,
+                        width: 32,
+                        height: 32,
+                        borderRadius: "50%",
+                        background: "var(--cream-dark)",
+                        border: "none",
+                        fontSize: 18,
+                        color: "var(--ink-muted)",
                         cursor: "pointer",
-                        transition: "background 0.2s",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        zIndex: 1,
                       }}
                     >
-                      <div
-                        style={{
-                          width: 16,
-                          height: 16,
-                          borderRadius: "50%",
-                          background: darkMode
-                            ? "var(--cream)"
-                            : "var(--ink-muted)",
-                          position: "absolute",
-                          top: 2,
-                          left: darkMode ? 20 : 2,
-                          transition: "left 0.2s",
+                      ✕
+                    </button>
+                    <div style={{ padding: "24px" }}>
+                      <SettingsPage
+                        updateAvailable={updateAvailable}
+                        latestRelease={latestRelease}
+                        onOpenUpdateModal={() => setShowUpdateModal(true)}
+                        darkMode={darkMode}
+                        setDarkMode={setDarkMode}
+                        simpleFont={simpleFont}
+                        setSimpleFont={setSimpleFont}
+                        fontSize={fontSize}
+                        setFontSize={setFontSize}
+                        enableStreak={enableStreak}
+                        setEnableStreak={(val: boolean) => {
+                          setEnableStreak(val);
+                          saveJSON("enableStreak", val);
+                          if (!val) {
+                            setStudyStreak(0);
+                            saveJSON("studyStreak", 0);
+                          }
+                        }}
+                        enablePomodoro={enablePomodoro}
+                        setEnablePomodoro={(val: boolean) => {
+                          setEnablePomodoro(val);
+                          saveJSON("enablePomodoro", val);
                         }}
                       />
-                    </button>
-                  </div>
-
-                  {/* Font Style */}
-                  <div>
-                    <div
-                      style={{
-                        fontSize: "calc(12px * var(--scale, 1))",
-                        color: "var(--ink-muted)",
-                        marginBottom: 6,
-                      }}
-                    >
-                      Font Style
                     </div>
-                    <div style={{ display: "flex", gap: 6 }}>
-                      <button
-                        onClick={() => setSimpleFont(false)}
-                        style={{
-                          flex: 1,
-                          padding: "6px",
-                          fontSize: "calc(12px * var(--scale, 1))",
-                          borderRadius: "var(--radius-sm)",
-                          border: "1px solid var(--cream-border)",
-                          background: !simpleFont
-                            ? "var(--accent-bg)"
-                            : "var(--cream-dark)",
-                          color: !simpleFont
-                            ? "var(--accent)"
-                            : "var(--ink-muted)",
-                          fontFamily: "'Instrument Serif', Georgia, serif",
-                          cursor: "pointer",
-                        }}
-                      >
-                        Serif
-                      </button>
-                      <button
-                        onClick={() => setSimpleFont(true)}
-                        style={{
-                          flex: 1,
-                          padding: "6px",
-                          fontSize: "calc(12px * var(--scale, 1))",
-                          borderRadius: "var(--radius-sm)",
-                          border: "1px solid var(--cream-border)",
-                          background: simpleFont
-                            ? "var(--accent-bg)"
-                            : "var(--cream-dark)",
-                          color: simpleFont
-                            ? "var(--accent)"
-                            : "var(--ink-muted)",
-                          fontFamily: "'Fraunces', Georgia, serif",
-                          cursor: "pointer",
-                        }}
-                      >
-                        Fraunces
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Font Size */}
-                  <div>
-                    <div
-                      style={{
-                        fontSize: "calc(12px * var(--scale, 1))",
-                        color: "var(--ink-muted)",
-                        marginBottom: 6,
-                      }}
-                    >
-                      Text Size
-                    </div>
-                    <div style={{ display: "flex", gap: 6 }}>
-                      {(["S", "M", "L"] as const).map((s) => (
-                        <button
-                          key={s}
-                          onClick={() => setFontSize(s)}
-                          style={{
-                            flex: 1,
-                            padding: "6px",
-                            fontSize: `calc(${s === "S" ? 11 : s === "M" ? 13 : 15}px * var(--scale, 1))`,
-                            borderRadius: "var(--radius-sm)",
-                            border: "1px solid var(--cream-border)",
-                            background:
-                              fontSize === s
-                                ? "var(--accent-bg)"
-                                : "var(--cream-dark)",
-                            color:
-                              fontSize === s
-                                ? "var(--accent)"
-                                : "var(--ink-muted)",
-                            cursor: "pointer",
-                            fontFamily: "var(--font-body)",
-                          }}
-                        >
-                          {s}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Gamification Settings */}
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      borderTop: "1px solid var(--cream-border)",
-                      paddingTop: 16,
-                    }}
-                  >
-                    <span
-                      style={{
-                        fontSize: "calc(13px * var(--scale, 1))",
-                        fontWeight: 500,
-                        color: "var(--ink)",
-                      }}
-                    >
-                      Study Cards Streak
-                    </span>
-                    <button
-                      onClick={() => {
-                        const val = !enableStreak;
-                        setEnableStreak(val);
-                        saveJSON("enableStreak", val);
-                        if (!val) {
-                          setStudyStreak(0);
-                          saveJSON("studyStreak", 0);
-                        }
-                      }}
-                      style={{
-                        width: 40,
-                        height: 22,
-                        borderRadius: 12,
-                        background: enableStreak
-                          ? "var(--accent)"
-                          : "var(--cream-dark)",
-                        border: "1px solid var(--cream-border)",
-                        position: "relative",
-                        cursor: "pointer",
-                        transition: "background 0.2s",
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: 16,
-                          height: 16,
-                          borderRadius: "50%",
-                          background: enableStreak
-                            ? "var(--cream)"
-                            : "var(--ink-muted)",
-                          position: "absolute",
-                          top: 2,
-                          left: enableStreak ? 20 : 2,
-                          transition: "left 0.2s",
-                        }}
-                      />
-                    </button>
                   </div>
                 </div>
               )}
@@ -1020,6 +885,11 @@ export default function App() {
         activeTab !== "practice" &&
         activeTab !== "study" && (
           <div
+            className={
+              activeTab === "milestones" || activeTab === "settings"
+                ? "hide-on-mobile"
+                : ""
+            }
             style={{
               padding: "12px 24px",
               display: "flex",
@@ -1689,8 +1559,10 @@ export default function App() {
               Tap a date to edit it. Changes reflect everywhere in the app.
             </div>
             {milestones.map((m) => {
-              const date = new Date(m.dateStr);
-              const days = getDaysUntil(date);
+              const isDateRange =
+                m.dateStr.includes("-") && isNaN(Date.parse(m.dateStr));
+              const date = isDateRange ? new Date() : new Date(m.dateStr);
+              const days = isDateRange ? 0 : getDaysUntil(date);
               const editing = editingMilestone === m.id;
               return (
                 <div
@@ -1719,7 +1591,7 @@ export default function App() {
                     </div>
                     {editing ? (
                       <input
-                        type="date"
+                        type={isDateRange ? "text" : "date"}
                         defaultValue={m.dateStr}
                         autoFocus
                         onBlur={(e) =>
@@ -1742,6 +1614,7 @@ export default function App() {
                           color: "var(--ink)",
                           fontFamily: "var(--font-body)",
                           outline: "none",
+                          width: isDateRange ? "150px" : "auto",
                         }}
                       />
                     ) : (
@@ -1756,11 +1629,13 @@ export default function App() {
                           gap: 4,
                         }}
                       >
-                        {date.toLocaleDateString("en-PH", {
-                          month: "long",
-                          day: "numeric",
-                          year: "numeric",
-                        })}
+                        {isDateRange
+                          ? m.dateStr
+                          : date.toLocaleDateString("en-PH", {
+                              month: "long",
+                              day: "numeric",
+                              year: "numeric",
+                            })}
                         <span
                           style={{
                             fontSize: "calc(10px * var(--scale, 1))",
@@ -1772,6 +1647,17 @@ export default function App() {
                         </span>
                       </div>
                     )}
+                    {m.id === "registration" && !editing && (
+                      <div
+                        style={{
+                          fontSize: "calc(11px * var(--scale, 1))",
+                          color: "var(--ink-faint)",
+                          marginTop: 4,
+                        }}
+                      >
+                        Remember to register
+                      </div>
+                    )}
                   </div>
                   <div
                     style={{
@@ -1779,12 +1665,26 @@ export default function App() {
                       fontWeight: 500,
                       padding: "4px 12px",
                       borderRadius: "var(--radius-sm)",
-                      background: days < 0 ? "var(--cream-dark)" : m.bg,
-                      color: days < 0 ? "var(--ink-faint)" : m.color,
+                      background: isDateRange
+                        ? m.bg
+                        : days < 0
+                          ? "var(--cream-dark)"
+                          : m.bg,
+                      color: isDateRange
+                        ? m.color
+                        : days < 0
+                          ? "var(--ink-faint)"
+                          : m.color,
                       flexShrink: 0,
                     }}
                   >
-                    {days < 0 ? "Done" : days === 0 ? "Today" : `${days}d`}
+                    {isDateRange
+                      ? "Ongoing"
+                      : days < 0
+                        ? "Done"
+                        : days === 0
+                          ? "Today"
+                          : `${days}d`}
                   </div>
                 </div>
               );

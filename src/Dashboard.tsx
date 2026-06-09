@@ -115,6 +115,15 @@ function getDailyQuote() {
 }
 
 // ── storage helpers
+function loadSavedExams() {
+  try {
+    const s = localStorage.getItem("saved-exams");
+    return s ? JSON.parse(s) : [];
+  } catch {
+    return [];
+  }
+}
+
 function checksKey(d: Date) {
   return `checks-${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
 }
@@ -660,6 +669,63 @@ export default function Dashboard({
   onNavigateToPractice: () => void;
 }) {
   const [weekOffset, setWeekOffset] = useState(0);
+
+  const [weaknesses, setWeaknesses] = useState<
+    { short: string; name: string; score: number }[]
+  >([]);
+
+  useEffect(() => {
+    const exams = loadSavedExams();
+    const subjectStats: Record<
+      string,
+      { totalScore: number; count: number; name: string }
+    > = {};
+
+    subjects.forEach((s) => {
+      subjectStats[s.short] = { totalScore: 0, count: 0, name: s.name };
+    });
+
+    exams.forEach((e: any) => {
+      // e.examCode is something like "LOM_1" or "LOM"
+      const shortCode = e.examCode?.split("_")[0];
+      if (shortCode && subjectStats[shortCode]) {
+        subjectStats[shortCode].totalScore += e.score;
+        subjectStats[shortCode].count += 1;
+      }
+    });
+
+    const calculated = subjects.map((s) => {
+      const stat = subjectStats[s.short];
+      const avgScore =
+        stat.count > 0 ? Math.round(stat.totalScore / stat.count) : null;
+      return {
+        short: s.short,
+        name: s.name,
+        score: avgScore,
+      };
+    });
+
+    // Make sure we have 6 subjects
+    setWeaknesses(
+      calculated as { short: string; name: string; score: number }[],
+    );
+  }, [subjects]);
+
+  const validWeaknesses = weaknesses.filter((w) => w.score !== null);
+  const totalGWA =
+    validWeaknesses.length > 0
+      ? Math.round(
+          validWeaknesses.reduce((a, b) => a + b.score, 0) /
+            validWeaknesses.length,
+        )
+      : null;
+
+  // Find the subject with the lowest score for the report
+  const sortedWeaknesses = [...validWeaknesses].sort(
+    (a, b) => a.score - b.score,
+  );
+  const lowestSubject =
+    sortedWeaknesses.length > 0 ? sortedWeaknesses[0] : null;
   const [scores, setScores] = useState<{ date: string; score: number }[]>([]);
   const [streak, setStreak] = useState(0);
   const [studyStats, setStudyStats] = useState({
@@ -830,6 +896,7 @@ export default function Dashboard({
           border: "1px solid var(--cream-border)",
           borderRadius: "var(--radius)",
           padding: "14px 16px",
+          marginBottom: 16,
         }}
       >
         <div
@@ -918,188 +985,6 @@ export default function Dashboard({
         </div>
       </div>
 
-      {/* milestones */}
-      <div
-        style={{
-          background: "var(--cream)",
-          border: "1px solid var(--cream-border)",
-          borderRadius: "var(--radius)",
-          padding: "14px 16px",
-        }}
-      >
-        <div
-          style={{
-            fontSize: "calc(13px * var(--scale, 1))",
-            fontWeight: 500,
-            color: "var(--ink)",
-            marginBottom: 12,
-          }}
-        >
-          Milestones
-        </div>
-        <div className="dashboard-stats-grid-4" style={{ gap: 8 }}>
-          {milestones.map((m) => {
-            const days = getDaysUntil(new Date(m.dateStr));
-            const done = days < 0;
-            return (
-              <div
-                key={m.id}
-                style={{
-                  padding: "10px 12px",
-                  background: done ? "var(--cream-dark)" : m.bg,
-                  borderRadius: "var(--radius-sm)",
-                  opacity: done ? 0.6 : 1,
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: "calc(11px * var(--scale, 1))",
-                    fontWeight: 500,
-                    color: done ? "var(--ink-faint)" : m.color,
-                    marginBottom: 4,
-                  }}
-                >
-                  {m.label}
-                </div>
-                <div
-                  style={{
-                    fontFamily: "var(--font-display)",
-                    fontSize: "calc(20px * var(--scale, 1))",
-                    color: done ? "var(--ink-faint)" : m.color,
-                  }}
-                >
-                  {done ? "✓" : days === 0 ? "Today" : `${days}d`}
-                </div>
-                <div
-                  style={{
-                    fontSize: "calc(10px * var(--scale, 1))",
-                    color: done ? "var(--ink-faint)" : m.color,
-                    marginTop: 2,
-                    opacity: 0.8,
-                  }}
-                >
-                  {new Date(m.dateStr).toLocaleDateString("en-PH", {
-                    month: "short",
-                    day: "numeric",
-                  })}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* weekly overview */}
-      <div
-        style={{
-          background: "var(--cream)",
-          border: "1px solid var(--cream-border)",
-          borderRadius: "var(--radius)",
-          padding: "14px 16px",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            marginBottom: 12,
-          }}
-        >
-          <span
-            style={{
-              fontSize: "calc(13px * var(--scale, 1))",
-              fontWeight: 500,
-              color: "var(--ink)",
-            }}
-          >
-            {weekOffset === 0
-              ? "This week"
-              : weekOffset === -1
-                ? "Last week"
-                : weekOffset === 1
-                  ? "Next week"
-                  : `Week ${weekOffset > 0 ? "+" : ""}${weekOffset}`}
-          </span>
-          <div style={{ display: "flex", gap: 6 }}>
-            <button
-              onClick={() => setWeekOffset((w) => w - 1)}
-              style={smallBtn}
-            >
-              ←
-            </button>
-            {weekOffset !== 0 && (
-              <button
-                onClick={() => setWeekOffset(0)}
-                style={{
-                  ...smallBtn,
-                  fontSize: "calc(10px * var(--scale, 1))",
-                }}
-              >
-                Today
-              </button>
-            )}
-            <button
-              onClick={() => setWeekOffset((w) => w + 1)}
-              style={smallBtn}
-            >
-              →
-            </button>
-          </div>
-        </div>
-        <WeeklyOverview
-          weekOffset={weekOffset}
-          startDateStr={startDateStr}
-          subjects={subjects}
-          cycleLength={cycleLength}
-          studyDays={studyDays}
-        />
-        <div
-          style={{ display: "flex", gap: 12, marginTop: 10, flexWrap: "wrap" }}
-        >
-          {[
-            {
-              bg: "var(--blue-bg)",
-              color: "var(--blue)",
-              label: "Board subject",
-            },
-            {
-              bg: "var(--green-bg)",
-              color: "var(--green)",
-              label: "Score: 90+",
-            },
-            {
-              bg: "var(--blue-bg)",
-              color: "var(--blue)",
-              label: "Score: 75-89",
-            },
-          ].map((l) => (
-            <div
-              key={l.label}
-              style={{ display: "flex", alignItems: "center", gap: 5 }}
-            >
-              <div
-                style={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: 2,
-                  background: l.bg,
-                  border: `1px solid ${l.color}`,
-                }}
-              />
-              <span
-                style={{
-                  fontSize: "calc(10px * var(--scale, 1))",
-                  color: "var(--ink-faint)",
-                }}
-              >
-                {l.label}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-
       {/* mock exam chart */}
       <div
         style={{
@@ -1107,6 +992,7 @@ export default function Dashboard({
           border: "1px solid var(--cream-border)",
           borderRadius: "var(--radius)",
           padding: "14px 16px",
+          marginBottom: 16,
         }}
       >
         <div
@@ -1215,7 +1101,360 @@ export default function Dashboard({
         </div>
       </div>
 
-      {/* subject rotation */}
+      {/* subject weaknesses */}
+      <div
+        style={{
+          background: "var(--cream)",
+          border: "1px solid var(--cream-border)",
+          borderRadius: "var(--radius)",
+          padding: "14px 16px",
+          marginBottom: 16,
+        }}
+      >
+        <div
+          style={{
+            fontSize: "calc(13px * var(--scale, 1))",
+            fontWeight: 500,
+            color: "var(--ink)",
+            marginBottom: 12,
+          }}
+        >
+          Subject weaknesses
+        </div>
+        {validWeaknesses.length === 0 ? (
+          <div
+            style={{
+              fontSize: "calc(12px * var(--scale, 1))",
+              color: "var(--ink-muted)",
+              textAlign: "center",
+              padding: "16px 0",
+            }}
+          >
+            Not enough exam data to determine weaknesses yet. Take an exam!
+          </div>
+        ) : (
+          <div className="dashboard-split-layout">
+            {/* Left: Bar Chart */}
+            <div className="dashboard-split-left">
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "flex-end",
+                  height: 160,
+                  gap: "calc(2% + 4px)",
+                }}
+              >
+                {weaknesses.slice(0, 6).map((w) => {
+                  const hasData = w.score !== null;
+                  return (
+                    <div
+                      key={w.short}
+                      style={{
+                        flex: 1,
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        height: "100%",
+                        opacity: hasData ? 1 : 0.3,
+                      }}
+                    >
+                      <div
+                        style={{
+                          flex: 1,
+                          display: "flex",
+                          alignItems: "flex-end",
+                          width: "100%",
+                          padding: "0 4px",
+                          position: "relative",
+                        }}
+                      >
+                        {/* 75% threshold line */}
+                        <div
+                          style={{
+                            position: "absolute",
+                            left: 0,
+                            right: 0,
+                            bottom: "75%",
+                            height: 1,
+                            background: "var(--accent)",
+                            opacity: 0.3,
+                            zIndex: 0,
+                          }}
+                        />
+                        {/* 50% threshold line */}
+                        <div
+                          style={{
+                            position: "absolute",
+                            left: 0,
+                            right: 0,
+                            bottom: "50%",
+                            height: 1,
+                            background: "var(--red)",
+                            opacity: 0.3,
+                            zIndex: 0,
+                          }}
+                        />
+
+                        {hasData && (
+                          <div
+                            style={{
+                              width: "100%",
+                              height: `${w.score}%`,
+                              background:
+                                w.score < 50
+                                  ? "var(--red)"
+                                  : w.score < 75
+                                    ? "var(--accent)"
+                                    : "var(--blue)",
+                              borderRadius: "4px 4px 0 0",
+                              transition: "height 0.5s ease",
+                              zIndex: 1,
+                            }}
+                          />
+                        )}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: "calc(10px * var(--scale, 1))",
+                          fontWeight: 500,
+                          color: "var(--ink)",
+                          marginTop: 8,
+                          textAlign: "center",
+                        }}
+                      >
+                        {w.short}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: "calc(9px * var(--scale, 1))",
+                          color: "var(--ink-muted)",
+                          marginTop: 2,
+                        }}
+                      >
+                        {hasData ? `${w.score}%` : "—"}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Right: Info & GWA */}
+            <div
+              className="dashboard-split-right"
+              style={{ display: "flex", flexDirection: "column", gap: 16 }}
+            >
+              {/* Top half: Horizontal GWA Bar */}
+              <div>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "baseline",
+                    marginBottom: 6,
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: "calc(12px * var(--scale, 1))",
+                      fontWeight: 500,
+                      color: "var(--ink)",
+                    }}
+                  >
+                    Estimated GWA
+                  </span>
+                  <span
+                    style={{
+                      fontSize: "calc(16px * var(--scale, 1))",
+                      fontFamily: "var(--font-display)",
+                      color:
+                        totalGWA !== null && totalGWA >= 75
+                          ? "var(--green)"
+                          : "var(--accent)",
+                    }}
+                  >
+                    {totalGWA !== null ? `${totalGWA}%` : "—"}
+                  </span>
+                </div>
+                <div
+                  style={{
+                    height: 8,
+                    background: "var(--cream-dark)",
+                    borderRadius: 4,
+                    position: "relative",
+                    overflow: "hidden",
+                  }}
+                >
+                  {/* 75% threshold line */}
+                  <div
+                    style={{
+                      position: "absolute",
+                      left: "75%",
+                      top: 0,
+                      bottom: 0,
+                      width: 1,
+                      background: "var(--accent)",
+                      opacity: 0.5,
+                      zIndex: 2,
+                    }}
+                  />
+
+                  {totalGWA !== null && (
+                    <div
+                      style={{
+                        height: "100%",
+                        width: `${totalGWA}%`,
+                        background:
+                          totalGWA < 75 ? "var(--accent)" : "var(--green)",
+                        borderRadius: 4,
+                        transition: "width 0.5s ease",
+                        zIndex: 1,
+                      }}
+                    />
+                  )}
+                </div>
+                <div
+                  style={{
+                    fontSize: "calc(10px * var(--scale, 1))",
+                    color: "var(--ink-faint)",
+                    marginTop: 4,
+                  }}
+                >
+                  Target: 75% to pass
+                </div>
+              </div>
+
+              {/* Bottom half: Focus Area */}
+              <div
+                style={{
+                  background:
+                    lowestSubject?.score !== undefined &&
+                    lowestSubject.score < 50
+                      ? "var(--red-bg)"
+                      : "var(--accent-bg)",
+                  padding: 12,
+                  borderRadius: "var(--radius-sm)",
+                  flex: 1,
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: "calc(11px * var(--scale, 1))",
+                    color:
+                      lowestSubject?.score !== undefined &&
+                      lowestSubject.score < 50
+                        ? "var(--red)"
+                        : "var(--accent)",
+                    fontWeight: 500,
+                    marginBottom: 6,
+                  }}
+                >
+                  Focus Area
+                </div>
+                <div
+                  style={{
+                    fontSize: "calc(12px * var(--scale, 1))",
+                    color: "var(--ink)",
+                    lineHeight: 1.4,
+                  }}
+                >
+                  {lowestSubject?.score !== undefined &&
+                  lowestSubject.score < 50
+                    ? `Warning: ${lowestSubject.short} is below 50%. You must review this subject to avoid failing the exam.`
+                    : `Your lowest score is in ${lowestSubject?.short} (${lowestSubject?.score}%). Consider dedicating more time here.`}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* milestones */}
+      <div
+        style={{
+          background: "var(--cream)",
+          border: "1px solid var(--cream-border)",
+          borderRadius: "var(--radius)",
+          padding: "14px 16px",
+          marginBottom: 16,
+        }}
+      >
+        <div
+          style={{
+            fontSize: "calc(13px * var(--scale, 1))",
+            fontWeight: 500,
+            color: "var(--ink)",
+            marginBottom: 12,
+          }}
+        >
+          Milestones
+        </div>
+        <div className="dashboard-stats-grid-4" style={{ gap: 8 }}>
+          {milestones.map((m) => {
+            const isDateRange =
+              m.dateStr.includes("-") && isNaN(Date.parse(m.dateStr));
+            const days = isDateRange ? 0 : getDaysUntil(new Date(m.dateStr));
+            const done = !isDateRange && days < 0;
+            return (
+              <div
+                key={m.id}
+                style={{
+                  padding: "10px 12px",
+                  background: done ? "var(--cream-dark)" : m.bg,
+                  borderRadius: "var(--radius-sm)",
+                  opacity: done ? 0.6 : 1,
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: "calc(11px * var(--scale, 1))",
+                    fontWeight: 500,
+                    color: done ? "var(--ink-faint)" : m.color,
+                    marginBottom: 4,
+                  }}
+                >
+                  {m.label}
+                </div>
+                <div
+                  style={{
+                    fontFamily: "var(--font-display)",
+                    fontSize: "calc(20px * var(--scale, 1))",
+                    color: done ? "var(--ink-faint)" : m.color,
+                  }}
+                >
+                  {isDateRange
+                    ? "Ongoing"
+                    : done
+                      ? "✓"
+                      : days === 0
+                        ? "Today"
+                        : `${days}d`}
+                </div>
+                <div
+                  style={{
+                    fontSize: "calc(10px * var(--scale, 1))",
+                    color: done ? "var(--ink-faint)" : m.color,
+                    marginTop: 2,
+                    opacity: 0.8,
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  }}
+                >
+                  {isDateRange
+                    ? m.dateStr
+                    : new Date(m.dateStr).toLocaleDateString("en-PH", {
+                        month: "short",
+                        day: "numeric",
+                      })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* weekly overview */}
       <div
         style={{
           background: "var(--cream)",
@@ -1227,97 +1466,103 @@ export default function Dashboard({
       >
         <div
           style={{
-            fontSize: "calc(13px * var(--scale, 1))",
-            fontWeight: 500,
-            color: "var(--ink)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
             marginBottom: 12,
           }}
         >
-          Subject rotation
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          {subjects.map((s, i) => {
-            const isCurrent =
-              !isRestDay(today, studyDays) &&
-              getSubjectForDate(
-                today,
-                startDateStr,
-                subjects,
-                cycleLength,
-                studyDays,
-              ).idx === i;
-            return (
-              <div
-                key={s.short}
+          <span
+            style={{
+              fontSize: "calc(13px * var(--scale, 1))",
+              fontWeight: 500,
+              color: "var(--ink)",
+            }}
+          >
+            {weekOffset === 0
+              ? "This week"
+              : weekOffset === -1
+                ? "Last week"
+                : weekOffset === 1
+                  ? "Next week"
+                  : `Week ${weekOffset > 0 ? "+" : ""}${weekOffset}`}
+          </span>
+          <div style={{ display: "flex", gap: 6 }}>
+            <button
+              onClick={() => setWeekOffset((w) => w - 1)}
+              style={smallBtn}
+            >
+              ←
+            </button>
+            {weekOffset !== 0 && (
+              <button
+                onClick={() => setWeekOffset(0)}
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  padding: "8px 10px",
-                  background: isCurrent ? "var(--accent-bg)" : "transparent",
-                  borderRadius: "var(--radius-sm)",
-                  border: `1px solid ${isCurrent ? "var(--accent-light)" : "transparent"}`,
+                  ...smallBtn,
+                  fontSize: "calc(10px * var(--scale, 1))",
                 }}
               >
-                <div
-                  style={{
-                    width: 22,
-                    height: 22,
-                    borderRadius: "50%",
-                    flexShrink: 0,
-                    background: isCurrent
-                      ? "var(--accent)"
-                      : "var(--cream-border)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: "calc(10px * var(--scale, 1))",
-                    fontWeight: 500,
-                    color: isCurrent ? "white" : "var(--ink-muted)",
-                  }}
-                >
-                  {i + 1}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div
-                    style={{
-                      fontSize: "calc(12px * var(--scale, 1))",
-                      fontWeight: isCurrent ? 500 : 400,
-                      color: "var(--ink)",
-                      whiteSpace: "nowrap",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                    }}
-                  >
-                    {s.name}
-                  </div>
-                  <div
-                    style={{
-                      fontSize: "calc(10px * var(--scale, 1))",
-                      color: "var(--ink-faint)",
-                    }}
-                  >
-                    {s.short} · {s.weight}% LLE Weight
-                  </div>
-                </div>
-                {isCurrent && (
-                  <span
-                    style={{
-                      fontSize: "calc(10px * var(--scale, 1))",
-                      padding: "2px 8px",
-                      borderRadius: 3,
-                      background: "var(--accent)",
-                      color: "white",
-                      fontWeight: 500,
-                      flexShrink: 0,
-                    }}
-                  >
-                    This week
-                  </span>
-                )}
-              </div>
-            );
-          })}
+                Today
+              </button>
+            )}
+            <button
+              onClick={() => setWeekOffset((w) => w + 1)}
+              style={smallBtn}
+            >
+              →
+            </button>
+          </div>
+        </div>
+        <WeeklyOverview
+          weekOffset={weekOffset}
+          startDateStr={startDateStr}
+          subjects={subjects}
+          cycleLength={cycleLength}
+          studyDays={studyDays}
+        />
+        <div
+          style={{ display: "flex", gap: 12, marginTop: 10, flexWrap: "wrap" }}
+        >
+          {[
+            {
+              bg: "var(--blue-bg)",
+              color: "var(--blue)",
+              label: "Board subject",
+            },
+            {
+              bg: "var(--green-bg)",
+              color: "var(--green)",
+              label: "Score: 90+",
+            },
+            {
+              bg: "var(--blue-bg)",
+              color: "var(--blue)",
+              label: "Score: 75-89",
+            },
+          ].map((l) => (
+            <div
+              key={l.label}
+              style={{ display: "flex", alignItems: "center", gap: 5 }}
+            >
+              <div
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: 2,
+                  background: l.bg,
+                  border: `1px solid ${l.color}`,
+                }}
+              />
+              <span
+                style={{
+                  fontSize: "calc(10px * var(--scale, 1))",
+                  color: "var(--ink-faint)",
+                }}
+              >
+                {l.label}
+              </span>
+            </div>
+          ))}
         </div>
       </div>
     </div>

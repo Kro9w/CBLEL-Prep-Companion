@@ -204,11 +204,11 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 .dashboard-split-left {
-  flex: 2;
+  flex: 6; /* 60% */
 }
 
 .dashboard-split-right {
-  flex: 1;
+  flex: 4; /* 40% */
 }
 
 @media (max-width: 1024px) {
@@ -706,4 +706,9 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 .study-feed-container::-webkit-scrollbar {
   display: none;
+}
+@media (max-width: 768px) {
+  .hide-on-mobile {
+    display: none !important;
+  }
 }
