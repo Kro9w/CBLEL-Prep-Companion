@@ -3598,12 +3598,19 @@ Y: Lean management (derived from the Toyota Production System)...`}</pre>
                   lineHeight: 1.5,
                 }}
               >
-                These sessions strictly enforce a{" "}
-                <strong>2-hour time limit</strong>. If you are starting a Post
-                exam, make sure you have already completed its respective Pre
-                exam to properly track your GWA. If this is a Pre exam, please
-                remember to take the corresponding Post exam afterwards before
-                moving on to another subject.
+                <ul style={{ margin: 0, paddingLeft: "20px" }}>
+                  <li>
+                    <strong>Time Limit:</strong> Strictly 2 hours per session.
+                  </li>
+                  <li>
+                    <strong>Exam Order:</strong> Complete the Pre exam before
+                    the Post exam to properly track your GWA.
+                  </li>
+                  <li>
+                    <strong>Next Steps:</strong> Finish the Post exam before
+                    moving to another subject.
+                  </li>
+                </ul>
               </div>
             </div>
           ) : (
