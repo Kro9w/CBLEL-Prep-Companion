@@ -4333,7 +4333,9 @@ Y: Lean management (derived from the Toyota Production System)...`}</pre>
             >
               {sessionType === "exam" || sessionType === "custom"
                 ? "Score auto-logged to dashboard"
-                : "Score not logged (Practice Mode)"}
+                : sessionType === "p2p"
+                  ? "Score synced to P2P analytics"
+                  : "Score not logged (Practice Mode)"}
             </div>
           </div>
         </div>
