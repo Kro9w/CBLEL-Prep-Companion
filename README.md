@@ -1,3 +1,11 @@
+## License
+
+Copyright (C) 2026 Solari MRC
+
+This project is licensed under the GNU General Public License v3.0 (GPL-3.0).
+
+See the LICENSE file for full details.
+
 # CBLEL PREP-Companion
 
 A daily routine, checklist, and Pomodoro app for the upcoming Computer Based Licensure Examination for Librarians (CBLEL).
