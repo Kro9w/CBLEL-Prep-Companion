@@ -14,16 +14,7 @@ dist/
 .vscode-test
 tmp/
 temp/
-public/QBank_CC.txt
-public/QBank_CM.txt
-public/QBank_IA.txt
-public/QBank_IT.txt
-public/QBank_LOM.txt
-public/QBank_RBU.txt
-public/DDC.txt
-public/LCC.txt
-public/MARC.txt
+public/
 /src-tauri
-public/P2PQS
 src/utils/p2pConstants.ts
 src/P2pAdmin.tsx

@@ -1585,6 +1585,7 @@ export default function Dashboard({
                 style={{
                   ...smallBtn,
                   fontSize: "calc(10px * var(--scale, 1))",
+                  width: 50,
                 }}
               >
                 Today

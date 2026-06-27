@@ -5,9 +5,17 @@ import { loadJSON, updateRecentlySeenQuestions } from "./utils/storage";
 import { P2P_SESSIONS } from "./utils/p2pConstants";
 import { Users } from "lucide-react";
 import { getAnonymousUuid } from "./utils/storage";
+import { ShelvingInteractive } from "./components/ShelvingInteractive";
+import { generateVariations } from "./components/CallNumberGenerator";
 
 // ── types
-export type SessionType = "exam" | "quiz" | "custom" | "classification" | "p2p";
+export type SessionType =
+  | "exam"
+  | "quiz"
+  | "custom"
+  | "classification"
+  | "p2p"
+  | "shelving";
 
 export type Option = { letter: string; text: string; correct: boolean };
 export type Question = {
@@ -392,6 +400,40 @@ function TimerDisplay({ elapsed, limit }: { elapsed: number; limit: number }) {
         {formatTime(remaining)}
       </span>
     </div>
+  );
+}
+
+// Custom slider helper component used by the settings UI
+interface CustomSliderProps {
+  min: number;
+  max: number;
+  value: number;
+  onChange: (val: number) => void;
+}
+
+function CustomSlider({ min, max, value, onChange }: CustomSliderProps) {
+  const percentage = ((value - min) / (max - min)) * 100;
+
+  return (
+    <input
+      type="range"
+      min={min}
+      max={max}
+      value={value}
+      onChange={(e) =>
+        onChange(parseInt((e.target as HTMLInputElement).value, 10))
+      }
+      style={{
+        width: "100%",
+        cursor: "pointer",
+        accentColor: "var(--accent)",
+        WebkitAppearance: "none",
+        appearance: "none",
+        height: "6px",
+        borderRadius: "3px",
+        background: `linear-gradient(to right, var(--accent) 0%, var(--accent) ${percentage}%, var(--cream) ${percentage}%, var(--cream-dark) 100%)`,
+      }}
+    />
   );
 }
 
@@ -875,7 +917,7 @@ function PreviousExams({ filterType }: { filterType: "exam" | "quiz" }) {
 // ── main component
 export default function MockExam({ isRestDay }: { isRestDay: boolean }) {
   const [view, setView] = useState<
-    "exam" | "history-exams" | "history-quizzes" | "p2p-sessions"
+    "exam" | "history-exams" | "history-quizzes" | "p2p-sessions" | "shelving"
   >("exam");
   const [phase, setPhase] = useState<ExamPhase>("load");
   const [sessionType, setSessionType] = useState<SessionType>("exam");
@@ -892,6 +934,13 @@ export default function MockExam({ isRestDay }: { isRestDay: boolean }) {
     "DDC" | "LCC" | "MARC" | null
   >(null);
   const [classificationCount, setClassificationCount] = useState(15);
+  const [showShelving, setShowShelving] = useState(false);
+  const [shelvingType, setShelvingType] = useState<"DDC" | "LCC" | null>(null);
+  const [shelvingCount, setShelvingCount] = useState(5);
+  const [shelvingItems, setShelvingItems] = useState<{
+    original: string[];
+    shuffled: string[];
+  } | null>(null);
   const [showUploadErrorModal, setShowUploadErrorModal] = useState<
     string | null
   >(null);
@@ -1751,6 +1800,98 @@ export default function MockExam({ isRestDay }: { isRestDay: boolean }) {
     </div>
   );
 
+  // ── render: shelving
+  if (view === "shelving" && shelvingItems) {
+    return renderWithTabBar(
+      <div
+        style={{
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          padding: "24px 80px",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            flexDirection:
+              "column" /* Changed from row to column to stack them */,
+            alignItems:
+              "flex-start" /* Changed from center to align button to the left */,
+            marginBottom: 24,
+            gap: 12 /* This controls the vertical spacing between button and text */,
+          }}
+        >
+          <button
+            onClick={() => {
+              setView("exam");
+              setShelvingItems(null);
+            }}
+            style={{
+              background: "none",
+              border: "none",
+              color: "var(--ink-muted)",
+              fontSize: "calc(13px * var(--scale, 1))",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: 4,
+              padding: 0,
+            }}
+          >
+            ← Back
+          </button>
+          <div>
+            <div
+              style={{
+                fontSize: "calc(20px * var(--scale, 1))",
+                fontFamily: "var(--font-display)",
+                color: "var(--ink)",
+              }}
+            >
+              Shelving Practice
+            </div>
+            <div
+              style={{
+                fontSize: "calc(13px * var(--scale, 1))",
+                color: "var(--ink-muted)",
+              }}
+            >
+              {shelvingType} - Arrange the sequence
+            </div>
+          </div>
+        </div>
+
+        <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+          <ShelvingInteractive
+            key={`${shelvingType}-${shelvingItems.original.join(",")}`}
+            items={shelvingItems.shuffled}
+            originalItems={shelvingItems.original}
+            showCorrectAnswerOnFail={true}
+            onConfirm={(correct) => {
+              // Practice mode only, no score logging required
+            }}
+            onRetry={() => {
+              const seedIndex = Math.floor(
+                Math.random() * shelvingItems.original.length,
+              );
+              const seed = shelvingItems.original[seedIndex];
+              const selected = generateVariations(
+                seed,
+                shelvingCount,
+                shelvingType as "DDC" | "LCC",
+              );
+              setShelvingItems({
+                original: selected,
+                shuffled: shuffleArray(selected),
+              });
+            }}
+          />
+        </div>
+      </div>,
+    );
+  }
+
   // ── render: history
   if (view === "history-exams" || view === "history-quizzes")
     return renderWithTabBar(
@@ -2319,6 +2460,7 @@ export default function MockExam({ isRestDay }: { isRestDay: boolean }) {
       </>,
     );
   }
+  const percentage: number = ((shelvingCount - 1) / (10 - 1)) * 100;
 
   // ── render: load
   if (phase === "load" && view === "exam")
@@ -2592,19 +2734,11 @@ export default function MockExam({ isRestDay }: { isRestDay: boolean }) {
                         {classificationCount}
                       </span>
                     </div>
-                    <input
-                      type="range"
-                      min="1"
-                      max="50"
+                    <CustomSlider
+                      min={1}
+                      max={50}
                       value={classificationCount}
-                      onChange={(e) =>
-                        setClassificationCount(parseInt(e.target.value))
-                      }
-                      style={{
-                        width: "100%",
-                        cursor: "pointer",
-                        accentColor: "var(--accent)",
-                      }}
+                      onChange={setClassificationCount}
                     />
                   </div>
 
@@ -2851,6 +2985,211 @@ export default function MockExam({ isRestDay }: { isRestDay: boolean }) {
                 </>
               )}
             </div>
+          ) : showShelving ? (
+            <div>
+              <button
+                onClick={() => setShowShelving(false)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "var(--ink-muted)",
+                  fontSize: "calc(13px * var(--scale, 1))",
+                  cursor: "pointer",
+                  marginBottom: 16,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 4,
+                }}
+              >
+                ← Back to modes
+              </button>
+
+              {!shelvingType ? (
+                <div
+                  style={{ display: "flex", flexDirection: "column", gap: 12 }}
+                >
+                  <button
+                    onClick={() => setShelvingType("DDC")}
+                    style={{
+                      padding: "16px 20px",
+                      background: "var(--cream)",
+                      border: "1px solid var(--cream-border)",
+                      borderRadius: "var(--radius)",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      fontFamily: "var(--font-body)",
+                      transition: "background 0.15s, border 0.15s",
+                    }}
+                  >
+                    <div>
+                      <div
+                        style={{
+                          fontSize: "calc(15px * var(--scale, 1))",
+                          fontWeight: 500,
+                          color: "var(--ink)",
+                          marginBottom: 4,
+                        }}
+                      >
+                        Dewey Decimal Classification
+                      </div>
+                      <div
+                        style={{
+                          fontSize: "calc(12px * var(--scale, 1))",
+                          color: "var(--ink-muted)",
+                          textAlign: "left",
+                        }}
+                      >
+                        Practice sorting DDC call numbers.
+                      </div>
+                    </div>
+                    <div
+                      style={{
+                        fontSize: "calc(18px * var(--scale, 1))",
+                        color: "var(--ink-faint)",
+                      }}
+                    >
+                      →
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => setShelvingType("LCC")}
+                    style={{
+                      padding: "16px 20px",
+                      background: "var(--cream)",
+                      border: "1px solid var(--cream-border)",
+                      borderRadius: "var(--radius)",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      fontFamily: "var(--font-body)",
+                      transition: "background 0.15s, border 0.15s",
+                    }}
+                  >
+                    <div>
+                      <div
+                        style={{
+                          fontSize: "calc(15px * var(--scale, 1))",
+                          fontWeight: 500,
+                          color: "var(--ink)",
+                          marginBottom: 4,
+                        }}
+                      >
+                        Library of Congress Classification
+                      </div>
+                      <div
+                        style={{
+                          fontSize: "calc(12px * var(--scale, 1))",
+                          color: "var(--ink-muted)",
+                          textAlign: "left",
+                        }}
+                      >
+                        Practice sorting LCC call numbers.
+                      </div>
+                    </div>
+                    <div
+                      style={{
+                        fontSize: "calc(18px * var(--scale, 1))",
+                        color: "var(--ink-faint)",
+                      }}
+                    >
+                      →
+                    </div>
+                  </button>
+                </div>
+              ) : (
+                <div
+                  style={{ display: "flex", flexDirection: "column", gap: 16 }}
+                >
+                  <div
+                    style={{
+                      background: "var(--cream)",
+                      border: "1px solid var(--cream-border)",
+                      borderRadius: "var(--radius)",
+                      padding: "16px",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        marginBottom: 8,
+                        fontSize: "calc(13px * var(--scale, 1))",
+                        fontWeight: 500,
+                        color: "var(--ink)",
+                      }}
+                    >
+                      <span>Number of items to sort</span>
+                      <span style={{ color: "var(--accent)" }}>
+                        {shelvingCount}
+                      </span>
+                    </div>
+                    <CustomSlider
+                      min={1}
+                      max={10}
+                      value={shelvingCount}
+                      onChange={setShelvingCount}
+                    />
+                  </div>
+
+                  <button
+                    onClick={() =>
+                      proceedAction(async () => {
+                        try {
+                          const res = await fetch(
+                            `${shelvingType}_Shelving.txt`,
+                          );
+                          const text = await res.text();
+                          const lines = text.split("\n").filter(Boolean);
+                          if (lines.length === 0) {
+                            setParseError(
+                              `No items in ${shelvingType}_Shelving.txt`,
+                            );
+                            return;
+                          }
+                          const seedIndex = Math.floor(
+                            Math.random() * lines.length,
+                          );
+                          const seed = lines[seedIndex];
+                          const selected = generateVariations(
+                            seed,
+                            shelvingCount,
+                            shelvingType as "DDC" | "LCC",
+                          );
+
+                          setShelvingItems({
+                            original: selected,
+                            shuffled: shuffleArray(selected),
+                          });
+                          setView("shelving");
+                        } catch (e) {
+                          setParseError(
+                            `Failed to load ${shelvingType} shelving data.`,
+                          );
+                        }
+                      })
+                    }
+                    style={{
+                      flex: 1,
+                      padding: "10px 0",
+                      fontSize: "calc(13px * var(--scale, 1))",
+                      fontWeight: 500,
+                      background: "var(--accent)",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "var(--radius-sm)",
+                      cursor: "pointer",
+                      fontFamily: "var(--font-body)",
+                    }}
+                  >
+                    Start Practice
+                  </button>
+                </div>
+              )}
+            </div>
           ) : !showCustom ? (
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <button
@@ -2997,6 +3336,57 @@ export default function MockExam({ isRestDay }: { isRestDay: boolean }) {
                     }}
                   >
                     Practice your knowledge on DDC, LCC.
+                  </div>
+                </div>
+                <div
+                  style={{
+                    fontSize: "calc(18px * var(--scale, 1))",
+                    color: "var(--ink-faint)",
+                  }}
+                >
+                  →
+                </div>
+              </button>
+
+              <button
+                onClick={() =>
+                  proceedAction(() => {
+                    setShowShelving(true);
+                    setShelvingType(null);
+                    setParseError("");
+                  })
+                }
+                style={{
+                  padding: "16px 20px",
+                  background: "var(--cream)",
+                  border: "1px solid var(--cream-border)",
+                  borderRadius: "var(--radius)",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  fontFamily: "var(--font-body)",
+                  transition: "background 0.15s, border 0.15s",
+                }}
+              >
+                <div style={{ textAlign: "left" }}>
+                  <div
+                    style={{
+                      fontSize: "calc(15px * var(--scale, 1))",
+                      fontWeight: 500,
+                      color: "var(--ink)",
+                      marginBottom: 4,
+                    }}
+                  >
+                    Shelving Practice
+                  </div>
+                  <div
+                    style={{
+                      fontSize: "calc(12px * var(--scale, 1))",
+                      color: "var(--ink-muted)",
+                    }}
+                  >
+                    Practice correct call number sequence shelving.
                   </div>
                 </div>
                 <div

@@ -1,13 +1,18 @@
 import { Question } from "../MockExam";
 import { loadJSON, updateRecentlySeenQuestions } from "../utils/storage";
+import { generateVariations } from "./CallNumberGenerator";
 
 const SUBJECT_SHORTS = ["LOM", "RBU", "CC", "IA", "CM", "IT"];
 
 export type StudyQuestion = Question & {
-  type: "standard" | "classification";
+  type: "standard" | "classification" | "shelving";
   classificationType?: "DDC" | "LCC" | "MARC";
+  shelvingType?: "DDC" | "LCC";
+  shelvingOriginal?: string[];
+  shelvingShuffled?: string[];
   subject?: string;
   answeredLetter?: string;
+  answeredCorrectly?: boolean;
 };
 
 const cache: Record<string, string> = {};
@@ -22,7 +27,35 @@ async function fetchFile(filename: string): Promise<string> {
 }
 
 export async function generateQuestion(): Promise<StudyQuestion> {
-  const isClassification = Math.random() < 0.65;
+  const rand = Math.random();
+  const isShelving = rand < 0.3;
+  const isClassification = rand >= 0.3 && rand < 0.75;
+  const isStandard = rand >= 0.75;
+
+  if (isShelving) {
+    const type = Math.random() > 0.5 ? "DDC" : "LCC";
+    try {
+      const text = await fetchFile(`${type}_Shelving.txt`);
+      const lines = text.split("\n").filter(Boolean);
+      if (lines.length > 0) {
+        const seedIndex = Math.floor(Math.random() * lines.length);
+        const seed = lines[seedIndex];
+        const original = generateVariations(seed, 4, type);
+        const shuffled = [...original].sort(() => 0.5 - Math.random());
+        return {
+          number: 1,
+          stem: `Arrange the following ${type} call numbers in the correct shelving order.`,
+          options: [],
+          type: "shelving",
+          shelvingType: type,
+          shelvingOriginal: original,
+          shelvingShuffled: shuffled,
+        };
+      }
+    } catch (e) {
+      console.error("Shelving generation failed", e);
+    }
+  }
 
   if (isClassification) {
     const types = ["DDC", "LCC", "MARC"];
